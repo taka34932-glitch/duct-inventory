@@ -304,19 +304,32 @@ function App() {
   const [addModal,     setAddModal]     = useState(null);
 
   useEffect(() => {
-    window.dbListen("simple", val => {
-      if (val) {
-        setSimple(val);
-      } else {
-        const initial = buildInitialSimple();
-        window.dbSet("simple", initial);
-        setSimple(initial);
-      }
+    // 5秒でタイムアウト（Firebaseに繋がらなくてもアプリを表示）
+    const timer = setTimeout(() => {
+      setSimple(buildInitialSimple());
       setLoading(false);
-    });
-    window.dbListen("tees",     val => setTees(val||{}));
-    window.dbListen("reducers", val => setReducers(val||{}));
-    window.dbListen("newhope",  val => setNewhope(val||{}));
+    }, 5000);
+
+    try {
+      window.dbListen("simple", val => {
+        clearTimeout(timer);
+        if (val) {
+          setSimple(val);
+        } else {
+          const initial = buildInitialSimple();
+          window.dbSet("simple", initial);
+          setSimple(initial);
+        }
+        setLoading(false);
+      });
+      window.dbListen("tees",     val => setTees(val||{}));
+      window.dbListen("reducers", val => setReducers(val||{}));
+      window.dbListen("newhope",  val => setNewhope(val||{}));
+    } catch(e) {
+      clearTimeout(timer);
+      setSimple(buildInitialSimple());
+      setLoading(false);
+    }
   }, []);
 
   const today = new Date().toISOString().slice(0,10);
