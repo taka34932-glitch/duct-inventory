@@ -291,8 +291,8 @@ function PhiCard({ phi, simpleStock, teeStock, reducerStock, newhopeStock, filte
 }
 
 function App() {
-  const [loading, setLoading] = useState(true);
-  const [simple,   setSimple]   = useState({});
+  const [loading, setLoading] = useState(false);
+  const [simple,   setSimple]   = useState(buildInitialSimple());
   const [tees,     setTees]     = useState({});
   const [reducers, setReducers] = useState({});
   const [newhope,  setNewhope]  = useState({});
