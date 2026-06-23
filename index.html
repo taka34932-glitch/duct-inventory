@@ -178,16 +178,23 @@ function render(){
       Object.values(s.newhope).filter(i=>i.phi===phi&&i.quantity===0).length;
   });
 
-  let html = `
-  <div class="summary">
-    <div class="sum-card"><span class="icon">⚠</span><div><div class="label">在庫なし</div><div class="val${zeroCount>0?' warn':''}">${zeroCount} 件</div></div></div>
-    <div class="sum-card"><span class="icon">📦</span><div><div class="label">総在庫数</div><div class="val">${totalQty} 点</div></div></div>
-    <div class="sum-card"><span class="icon">🟢</span><div><div class="label">T管</div><div class="val">${Object.keys(s.tees).length} 種</div></div></div>
-    <div class="sum-card"><span class="icon">🔻</span><div><div class="label">レジューサー</div><div class="val">${Object.keys(s.reducers).length} 種</div></div></div>
-    <div class="sum-card"><span class="icon">💧</span><div><div class="label">ニューホープ</div><div class="val">${Object.keys(s.newhope).length} 種</div></div></div>
-    <div class="sum-card" style="grid-column:1/-1"><span class="icon">🕐</span><div><div class="label">最終更新</div><div style="font-size:13px;font-weight:700;color:#1e293b;margin-top:2px">${s.lastUpdate?s.lastUpdate.content:'まだ更新なし'}</div>${s.lastUpdate?`<div style="font-size:11px;color:#94a3b8;margin-top:2px">${s.lastUpdate.time}</div>`:''}</div></div>
-  </div>
-  ${renderSearch()}
+  let html = '';
+
+  // サマリー
+  html += '<div class="summary">';
+  html += '<div class="sum-card"><span class="icon">⚠</span><div><div class="label">在庫なし</div><div class="val'+(zeroCount>0?' warn':'')+'">'+zeroCount+' 件</div></div></div>';
+  html += '<div class="sum-card"><span class="icon">📦</span><div><div class="label">総在庫数</div><div class="val">'+totalQty+' 点</div></div></div>';
+  html += '<div class="sum-card"><span class="icon">🟢</span><div><div class="label">T管</div><div class="val">'+Object.keys(s.tees).length+' 種</div></div></div>';
+  html += '<div class="sum-card"><span class="icon">🔻</span><div><div class="label">レジューサー</div><div class="val">'+Object.keys(s.reducers).length+' 種</div></div></div>';
+  html += '<div class="sum-card"><span class="icon">💧</span><div><div class="label">ニューホープ</div><div class="val">'+Object.keys(s.newhope).length+' 種</div></div></div>';
+  html += '<div class="sum-card" style="grid-column:1/-1"><span class="icon">🕐</span><div><div class="label">最終更新</div>';
+  html += '<div style="font-size:13px;font-weight:700;color:#1e293b;margin-top:2px">'+(s.lastUpdate?s.lastUpdate.content:'まだ更新なし')+'</div>';
+  if(s.lastUpdate) html += '<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+s.lastUpdate.time+'</div>';
+  html += '</div></div>';
+  html += '</div>';
+
+  // 検索パネル
+  html += renderSearch();
   <div class="tabs">
     <button class="tab${s.tab==='phi'?' active':''}" onclick="setTab('phi')">Φ別カード</button>
     <button class="tab${s.tab==='tee'?' active':''}" onclick="setTab('tee')">T管</button>
