@@ -133,7 +133,7 @@ const ALL_ITEMS = Object.values(CATS).flatMap(c=>c.items);
 // 状態
 let state = {
   simple:{}, tees:{}, reducers:{}, newhope:{},
-  tab:"phi", filterPhi:"all", filterMat:"all", showZero:false,
+  tab:"phi", filterPhi:"all", filterMat:"all", showZero:false, matTab:"z",
   modal:null
 };
 
@@ -191,15 +191,16 @@ function render(){
     <button class="tab${s.tab==='reducer'?' active':''}" onclick="setTab('reducer')">レジューサー</button>
     <button class="tab${s.tab==='newhope'?' active':''}" onclick="setTab('newhope')">ニューホープ</button>
   </div>
+  ${(s.tab==='phi'||s.tab==='tee')?`<div style="display:flex;gap:8px;margin-bottom:12px">
+    <button onclick="setMatTab('z')" style="padding:7px 20px;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;background:${s.matTab==='z'?'#1e293b':'#e2e8f0'};color:${s.matTab==='z'?'#fff':'#64748b'}">亜鉛</button>
+    <button onclick="setMatTab('sg')" style="padding:7px 20px;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;background:${s.matTab==='sg'?'#1e293b':'#e2e8f0'};color:${s.matTab==='sg'?'#fff':'#64748b'}">ステン・ガルバ</button>
+  </div>`:''}
   <div class="filters">
     <div><label>Φサイズ</label><select onchange="setFilterPhi(this.value)">
       <option value="all"${s.filterPhi==='all'?' selected':''}>すべて</option>
       ${PHI.map(p=>`<option value="${p}"${s.filterPhi==p?' selected':''}>Φ${p}</option>`).join('')}
     </select></div>
-    <div><label>材質</label><select onchange="setFilterMat(this.value)">
-      <option value="all"${s.filterMat==='all'?' selected':''}>すべて</option>
-      ${MATS.map(m=>`<option value="${m.k}"${s.filterMat===m.k?' selected':''}>${m.l}</option>`).join('')}
-    </select></div>
+
     <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#374151;padding-bottom:2px">
       <input type="checkbox" ${s.showZero?'checked':''} onchange="setShowZero(this.checked)" style="width:15px;height:15px;border:none"> 在庫なしのみ
     </label>
@@ -220,9 +221,9 @@ function render(){
       const simRows = Object.entries(s.simple)
         .filter(([,v])=>v.phi===phi)
         .map(([id,v])=>({id,...v,def:getItemDef(v.itemKey),cat:getCat(v.itemKey)}))
-        .filter(r=>r.def&&(s.filterMat==='all'||r.def.k.endsWith('_'+s.filterMat)));
-      const myTees = Object.entries(s.tees).filter(([,t])=>t.main===phi&&(s.filterMat==='all'||t.mat===s.filterMat));
-      const myReds = Object.entries(s.reducers).filter(([,r])=>r.from===phi&&(s.filterMat==='all'||r.mat===s.filterMat));
+        .filter(r=>{ if(!r.def)return false; if(s.matTab==='z') return r.def.k.endsWith('_z')||r.def.k.startsWith('flexi_'); return r.def.k.endsWith('_ss')||r.def.k.endsWith('_g'); });
+      const myTees = Object.entries(s.tees).filter(([,t])=>t.main===phi&&(s.matTab==='z'?t.mat==='z':t.mat==='ss'||t.mat==='g'));
+      const myReds = Object.entries(s.reducers).filter(([,r])=>r.from===phi&&(s.matTab==='z'?r.mat==='z':r.mat==='ss'||r.mat==='g'));
       const myNh   = Object.entries(s.newhope).filter(([,n])=>n.phi===phi);
       if(s.showZero){
         const hasZero = [...simRows,...myTees.map(([,t])=>t),...myReds.map(([,r])=>r),...myNh.map(([,n])=>n)].some(i=>i.quantity===0);
@@ -274,7 +275,7 @@ function render(){
   if(s.tab==='tee'){
     const rows = Object.entries(s.tees).filter(([,t])=>{
       if(s.filterPhi!=='all'&&t.main!==Number(s.filterPhi))return false;
-      if(s.filterMat!=='all'&&t.mat!==s.filterMat)return false;
+      if(s.tab==='tee'&&(s.matTab==='z'?t.mat!=='z':t.mat==='z'))return false;
       if(s.showZero&&t.quantity>0)return false;
       return true;
     });
@@ -300,7 +301,7 @@ function render(){
   if(s.tab==='reducer'){
     const rows = Object.entries(s.reducers).filter(([,r])=>{
       if(s.filterPhi!=='all'&&r.from!==Number(s.filterPhi))return false;
-      if(s.filterMat!=='all'&&r.mat!==s.filterMat)return false;
+      if(s.filterMat!=='all'&&r.mat!==s.filterMat)return false; // reducer
       if(s.showZero&&r.quantity>0)return false;
       return true;
     });
@@ -413,6 +414,7 @@ function render(){
 
 // アクション
 function setTab(t){ state.tab=t; render(); }
+function setMatTab(t){ state.matTab=t; render(); }
 function setFilterPhi(v){ state.filterPhi=v; render(); }
 function setFilterMat(v){ state.filterMat=v; render(); }
 function setShowZero(v){ state.showZero=v; render(); }
