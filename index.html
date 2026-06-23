@@ -280,6 +280,9 @@ function render(){
       if(s.tab==='tee'&&(s.matTab==='z'?t.mat!=='z':t.mat==='z'))return false;
       if(s.showZero&&t.quantity>0)return false;
       return true;
+    }).sort((a,b)=>{
+      const [,at]=a; const [,bt]=b;
+      return at.main-bt.main||at.body-bt.body||at.branch-bt.branch;
     });
     if(!rows.length) html += `<div style="text-align:center;padding:40px;color:#94a3b8;background:#fff;border-radius:12px">該当なし</div>`;
     rows.forEach(([id,t])=>{ const z=t.quantity===0;
@@ -306,7 +309,7 @@ function render(){
       if(s.filterMat!=='all'&&r.mat!==s.filterMat)return false; // reducer
       if(s.showZero&&r.quantity>0)return false;
       return true;
-    });
+    }).sort((a,b)=>a[1].from-b[1].from||a[1].to-b[1].to);
     if(!rows.length) html += `<div style="text-align:center;padding:40px;color:#94a3b8;background:#fff;border-radius:12px">該当なし</div>`;
     rows.forEach(([id,r])=>{ const z=r.quantity===0;
       html += `<div class="card${z?' alert':''}" style="margin-bottom:10px">
