@@ -4,46 +4,42 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ダクト在庫管理</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Firebase -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, push, remove, update }
-      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDdYBHxjK78-i9uswYJrrR1ZcGkyFkZoDE",
-      authDomain: "duct-inventory.firebaseapp.com",
-      databaseURL: "https://duct-inventory-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "duct-inventory",
-      storageBucket: "duct-inventory.firebasestorage.app",
-      messagingSenderId: "635885946227",
-      appId: "1:635885946227:web:ad16a6461da6696bee7106"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db  = getDatabase(app);
-    window.__db = db;
-    window.__fbRef    = ref;
-    window.__fbSet    = set;
-    window.__fbOnValue = onValue;
-    window.__fbPush   = push;
-    window.__fbRemove = remove;
-    window.__fbUpdate = update;
-    window.__fbReady  = true;
-    window.dispatchEvent(new Event("fbReady"));
-  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: #f1f5f9; }
   </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;color:#64748b"><div style="font-size:40px">🌀</div><div style="font-size:16px;font-weight:700">読み込み中...</div></div></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  // Firebase初期化（compat版）
+  const firebaseConfig = {
+    apiKey: "AIzaSyDdYBHxjK78-i9uswYJrrR1ZcGkyFkZoDE",
+    authDomain: "duct-inventory.firebaseapp.com",
+    databaseURL: "https://duct-inventory-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "duct-inventory",
+    storageBucket: "duct-inventory.firebasestorage.app",
+    messagingSenderId: "635885946227",
+    appId: "1:635885946227:web:ad16a6461da6696bee7106"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  window.dbSet    = (path, val) => db.ref(path).set(val);
+  window.dbRemove = (path)      => db.ref(path).remove();
+  window.dbPush   = (path, val) => db.ref(path).push(val);
+  window.dbListen = (path, cb)  => db.ref(path).on('value', snap => cb(snap.val()));
+</script>
+
 <script type="text/babel">
-const { useState, useMemo, useEffect, useCallback } = React;
+const { useState, useMemo, useEffect } = React;
 
 const PHI_SIZES = [100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350];
 
@@ -127,30 +123,10 @@ function teeLabel(t) {
 function reducerLabel(r) { return `Φ${r.from}→${r.to}（${MATERIALS.find(m => m.key === r.mat)?.label}）`; }
 function nhLabel(n)      { return `Φ${n.phi} / ${n.length}m`; }
 
-// ---- Firebase hooks ----
-function useFirebase() {
-  const [ready, setReady] = useState(!!window.__fbReady);
-  useEffect(() => {
-    if (window.__fbReady) return;
-    const h = () => setReady(true);
-    window.addEventListener("fbReady", h);
-    return () => window.removeEventListener("fbReady", h);
-  }, []);
-  return ready;
+function ZeroBadge({ qty }) {
+  if (qty > 0) return null;
+  return <span style={{ padding:"2px 8px", borderRadius:"10px", fontSize:"11px", fontWeight:700, background:"#fee2e2", color:ZERO_COLOR, border:"1px solid #fca5a5", whiteSpace:"nowrap" }}>在庫なし</span>;
 }
-
-function dbSet(path, val)    { window.__fbSet(window.__fbRef(window.__db, path), val); }
-function dbUpdate(path, val) { window.__fbUpdate(window.__fbRef(window.__db, path), val); }
-function dbRemove(path)      { window.__fbRemove(window.__fbRef(window.__db, path)); }
-function dbPush(path, val)   { return window.__fbPush(window.__fbRef(window.__db, path), val); }
-function dbListen(path, cb)  {
-  const r = window.__fbRef(window.__db, path);
-  return window.__fbOnValue(r, snap => cb(snap.val()));
-}
-
-// ---- UI部品 ----
-const ZERO_BADGE = <span style={{ padding:"2px 8px", borderRadius:"10px", fontSize:"11px", fontWeight:700, background:"#fee2e2", color:ZERO_COLOR, border:"1px solid #fca5a5", whiteSpace:"nowrap" }}>在庫なし</span>;
-function ZeroBadge({ qty }) { return qty === 0 ? ZERO_BADGE : null; }
 
 function Modal({ title, onClose, children }) {
   return (
@@ -177,7 +153,7 @@ function AdjustModal({ title, item, unit, onApply, onClose }) {
   return (
     <Modal title={title} onClose={onClose}>
       <p style={{ color:"#64748b", fontSize:"14px", marginTop:0 }}>
-        現在の在庫：<strong style={{ color: item.quantity===0 ? ZERO_COLOR : "#1e293b", fontSize:"22px" }}>{item.quantity}</strong>
+        現在の在庫：<strong style={{ color: item.quantity===0?ZERO_COLOR:"#1e293b", fontSize:"22px" }}>{item.quantity}</strong>
         <span style={{ fontSize:"13px", color:"#94a3b8", marginLeft:"4px" }}>{unit||"個"}</span>
       </p>
       <FL label="数量">
@@ -250,15 +226,15 @@ function NewhopeForm({ onSave, onClose }) {
 }
 
 function SectionHeader({ icon, label, color, bg, border }) {
-  return <div style={{ padding:"7px 14px", background:bg, borderBottom:`1px solid ${border}` }}><span style={{ fontWeight:800, fontSize:"12px", color, letterSpacing:"0.04em" }}>{icon} {label}</span></div>;
+  return <div style={{ padding:"7px 14px", background:bg, borderBottom:`1px solid ${border}` }}><span style={{ fontWeight:800, fontSize:"12px", color }}>{icon} {label}</span></div>;
 }
 
 function SimpleRow({ row, onAdjust }) {
   const isEmpty = row.quantity === 0;
   return (
-    <div style={{ padding:"8px 14px", display:"flex", alignItems:"center", gap:"8px", borderBottom:"1px solid #f1f5f9", background: isEmpty?"#fff8f8":"#fff" }}>
+    <div style={{ padding:"8px 14px", display:"flex", alignItems:"center", gap:"8px", borderBottom:"1px solid #f1f5f9", background:isEmpty?"#fff8f8":"#fff" }}>
       <span style={{ fontSize:"13px", color:"#374151", flex:"1 1 140px", minWidth:0 }}>{row.def.name}</span>
-      <span style={{ fontWeight:800, fontSize:"15px", color: isEmpty?ZERO_COLOR:"#1e293b", whiteSpace:"nowrap" }}>{row.quantity} <span style={{ fontSize:"11px", color:"#94a3b8", fontWeight:400 }}>{row.def.unit}</span></span>
+      <span style={{ fontWeight:800, fontSize:"15px", color:isEmpty?ZERO_COLOR:"#1e293b", whiteSpace:"nowrap" }}>{row.quantity} <span style={{ fontSize:"11px", color:"#94a3b8", fontWeight:400 }}>{row.def.unit}</span></span>
       <ZeroBadge qty={row.quantity} />
       <button onClick={onAdjust} style={{ padding:"3px 10px", border:"1.5px solid #e2e8f0", borderRadius:"5px", background:"#fff", fontSize:"11px", cursor:"pointer", fontWeight:700, color:"#475569", marginLeft:"auto" }}>入出庫</button>
     </div>
@@ -268,9 +244,9 @@ function SimpleRow({ row, onAdjust }) {
 function ComboRow({ item, label, onAdjust, onDelete, unit }) {
   const isEmpty = item.quantity === 0;
   return (
-    <div style={{ padding:"8px 14px", display:"flex", alignItems:"center", gap:"8px", borderBottom:"1px solid #f1f5f9", background: isEmpty?"#fff8f8":"#fff", flexWrap:"wrap" }}>
+    <div style={{ padding:"8px 14px", display:"flex", alignItems:"center", gap:"8px", borderBottom:"1px solid #f1f5f9", background:isEmpty?"#fff8f8":"#fff", flexWrap:"wrap" }}>
       <span style={{ fontSize:"13px", color:"#374151", flex:"1 1 160px", minWidth:0 }}>{label}</span>
-      <span style={{ fontWeight:800, fontSize:"15px", color: isEmpty?ZERO_COLOR:"#1e293b", whiteSpace:"nowrap" }}>{item.quantity} <span style={{ fontSize:"11px", color:"#94a3b8", fontWeight:400 }}>{unit||"個"}</span></span>
+      <span style={{ fontWeight:800, fontSize:"15px", color:isEmpty?ZERO_COLOR:"#1e293b", whiteSpace:"nowrap" }}>{item.quantity} <span style={{ fontSize:"11px", color:"#94a3b8", fontWeight:400 }}>{unit||"個"}</span></span>
       <ZeroBadge qty={item.quantity} />
       <div style={{ display:"flex", gap:"5px", marginLeft:"auto" }}>
         <button onClick={onAdjust} style={{ padding:"3px 9px", border:"1.5px solid #e2e8f0", borderRadius:"5px", background:"#fff", fontSize:"11px", cursor:"pointer", fontWeight:700, color:"#475569" }}>入出庫</button>
@@ -284,14 +260,14 @@ function PhiCard({ phi, simpleStock, teeStock, reducerStock, newhopeStock, filte
   const simpleRows = Object.entries(simpleStock)
     .filter(([,s]) => s.phi === phi)
     .map(([id,s]) => ({ id, ...s, def: ALL_SIMPLE_DEFS.find(d => d.key === s.itemKey), cat: getSimpleCat(s.itemKey) }))
-    .filter(r => filterMat === "all" || r.def.key.endsWith(`_${filterMat}`));
+    .filter(r => r.def && (filterMat === "all" || r.def.key.endsWith(`_${filterMat}`)));
   const myTees     = Object.entries(teeStock).filter(([,t]) => t.main === phi && (filterMat==="all"||t.mat===filterMat));
   const myReducers = Object.entries(reducerStock).filter(([,r]) => r.from === phi && (filterMat==="all"||r.mat===filterMat));
   const myNh       = Object.entries(newhopeStock).filter(([,n]) => n.phi === phi);
   const zeroN = [...simpleRows,...myTees.map(([,t])=>t),...myReducers.map(([,r])=>r),...myNh.map(([,n])=>n)].filter(i=>i.quantity===0).length;
   return (
-    <div style={{ background:"#fff", borderRadius:"12px", overflow:"hidden", boxShadow:"0 1px 4px rgba(0,0,0,0.08)", border: zeroN>0?"2px solid #fca5a5":"2px solid #e2e8f0" }}>
-      <div style={{ padding:"10px 14px", display:"flex", justifyContent:"space-between", alignItems:"center", background: zeroN>0?"#fef2f2":"#f8fafc", borderBottom:"1px solid #e2e8f0" }}>
+    <div style={{ background:"#fff", borderRadius:"12px", overflow:"hidden", boxShadow:"0 1px 4px rgba(0,0,0,0.08)", border:zeroN>0?"2px solid #fca5a5":"2px solid #e2e8f0" }}>
+      <div style={{ padding:"10px 14px", display:"flex", justifyContent:"space-between", alignItems:"center", background:zeroN>0?"#fef2f2":"#f8fafc", borderBottom:"1px solid #e2e8f0" }}>
         <span style={{ fontWeight:800, fontSize:"16px", color:"#1e293b" }}>Φ{phi}</span>
         {zeroN>0 && <span style={{ fontSize:"12px", color:ZERO_COLOR, fontWeight:700 }}>在庫なし {zeroN}件</span>}
       </div>
@@ -301,34 +277,25 @@ function PhiCard({ phi, simpleStock, teeStock, reducerStock, newhopeStock, filte
         const t = SIMPLE_TYPES[cat];
         return <div key={cat}><SectionHeader icon={t.icon} label={t.label} color={t.color} bg={t.bg} border={t.border} />{catRows.map(row=><SimpleRow key={row.id} row={row} onAdjust={()=>onSimpleAdjust(row)} />)}</div>;
       })}
-      <div>
-        <SectionHeader icon="🟢" label="T管" color="#15803d" bg="#f0fdf4" border="#bbf7d0" />
-        {myTees.length===0 ? <p style={{ fontSize:"12px", color:"#94a3b8", padding:"8px 14px", margin:0 }}>登録なし</p>
-          : myTees.map(([id,t])=><ComboRow key={id} item={t} label={teeLabel(t)} onAdjust={()=>onTeeAdjust(id,t)} onDelete={()=>onTeeDelete(id)} />)}
+      <div><SectionHeader icon="🟢" label="T管" color="#15803d" bg="#f0fdf4" border="#bbf7d0" />
+        {myTees.length===0?<p style={{ fontSize:"12px", color:"#94a3b8", padding:"8px 14px", margin:0 }}>登録なし</p>:myTees.map(([id,t])=><ComboRow key={id} item={t} label={teeLabel(t)} onAdjust={()=>onTeeAdjust(id,t)} onDelete={()=>onTeeDelete(id)} />)}
       </div>
-      <div>
-        <SectionHeader icon="🔻" label="レジューサー" color="#7c3aed" bg="#f5f3ff" border="#ddd6fe" />
-        {myReducers.length===0 ? <p style={{ fontSize:"12px", color:"#94a3b8", padding:"8px 14px", margin:0 }}>登録なし</p>
-          : myReducers.map(([id,r])=><ComboRow key={id} item={r} label={reducerLabel(r)} onAdjust={()=>onRedAdjust(id,r)} onDelete={()=>onRedDelete(id)} />)}
+      <div><SectionHeader icon="🔻" label="レジューサー" color="#7c3aed" bg="#f5f3ff" border="#ddd6fe" />
+        {myReducers.length===0?<p style={{ fontSize:"12px", color:"#94a3b8", padding:"8px 14px", margin:0 }}>登録なし</p>:myReducers.map(([id,r])=><ComboRow key={id} item={r} label={reducerLabel(r)} onAdjust={()=>onRedAdjust(id,r)} onDelete={()=>onRedDelete(id)} />)}
       </div>
-      <div>
-        <SectionHeader icon="💧" label="ニューホープ" color="#0891b2" bg="#ecfeff" border="#a5f3fc" />
-        {myNh.length===0 ? <p style={{ fontSize:"12px", color:"#94a3b8", padding:"8px 14px", margin:0 }}>登録なし</p>
-          : myNh.map(([id,n])=><ComboRow key={id} item={n} label={`${n.length}m`} unit="本" onAdjust={()=>onNhAdjust(id,n)} onDelete={()=>onNhDelete(id)} />)}
+      <div><SectionHeader icon="💧" label="ニューホープ" color="#0891b2" bg="#ecfeff" border="#a5f3fc" />
+        {myNh.length===0?<p style={{ fontSize:"12px", color:"#94a3b8", padding:"8px 14px", margin:0 }}>登録なし</p>:myNh.map(([id,n])=><ComboRow key={id} item={n} label={`${n.length}m`} unit="本" onAdjust={()=>onNhAdjust(id,n)} onDelete={()=>onNhDelete(id)} />)}
       </div>
     </div>
   );
 }
 
-// ---- メイン ----
 function App() {
-  const fbReady = useFirebase();
   const [loading, setLoading] = useState(true);
   const [simple,   setSimple]   = useState({});
   const [tees,     setTees]     = useState({});
   const [reducers, setReducers] = useState({});
   const [newhope,  setNewhope]  = useState({});
-
   const [tab,          setTab]          = useState("phi");
   const [filterPhi,    setFilterPhi]    = useState("all");
   const [filterMat,    setFilterMat]    = useState("all");
@@ -336,24 +303,15 @@ function App() {
   const [adjustTarget, setAdjustTarget] = useState(null);
   const [addModal,     setAddModal]     = useState(null);
 
-  // Firebase初期データ投入 & リスナー
   useEffect(() => {
-    if (!fbReady) return;
-    // simple在庫を初期化（存在しない場合のみ）
-    dbListen("simple", val => {
-      if (val) {
-        setSimple(val);
-        setLoading(false);
-      } else {
-        // 初回：初期データを書き込む
-        const initial = buildInitialSimple();
-        dbSet("simple", initial);
-      }
+    window.dbListen("simple", val => {
+      if (val) { setSimple(val); setLoading(false); }
+      else { window.dbSet("simple", buildInitialSimple()); }
     });
-    dbListen("tees",     val => setTees(val||{}));
-    dbListen("reducers", val => setReducers(val||{}));
-    dbListen("newhope",  val => setNewhope(val||{}));
-  }, [fbReady]);
+    window.dbListen("tees",     val => setTees(val||{}));
+    window.dbListen("reducers", val => setReducers(val||{}));
+    window.dbListen("newhope",  val => { setNewhope(val||{}); setLoading(false); });
+  }, []);
 
   const today = new Date().toISOString().slice(0,10);
 
@@ -361,19 +319,15 @@ function App() {
     if (!adjustTarget) return;
     const { type, id, item } = adjustTarget;
     const newQty = Math.max(0, item.quantity + signed);
-    const path = type === "simple" ? `simple/${id}/quantity`
-               : type === "tee"    ? `tees/${id}/quantity`
-               : type === "reducer"? `reducers/${id}/quantity`
-               :                     `newhope/${id}/quantity`;
-    dbSet(path, newQty);
-    const datePath = path.replace("/quantity", "/updatedAt");
-    dbSet(datePath, today);
+    const basePath = type==="simple"?`simple/${id}`:type==="tee"?`tees/${id}`:type==="reducer"?`reducers/${id}`:`newhope/${id}`;
+    window.dbSet(`${basePath}/quantity`, newQty);
+    window.dbSet(`${basePath}/updatedAt`, today);
     setAdjustTarget(null);
   };
 
-  const addTee     = f => { dbPush("tees",     {...f, updatedAt:today}); setAddModal(null); };
-  const addReducer = f => { dbPush("reducers", {...f, updatedAt:today}); setAddModal(null); };
-  const addNewhope = f => { dbPush("newhope",  {...f, updatedAt:today}); setAddModal(null); };
+  const addTee     = f => { window.dbPush("tees",     {...f, updatedAt:today}); setAddModal(null); };
+  const addReducer = f => { window.dbPush("reducers", {...f, updatedAt:today}); setAddModal(null); };
+  const addNewhope = f => { window.dbPush("newhope",  {...f, updatedAt:today}); setAddModal(null); };
 
   const allItems = [...Object.values(simple),...Object.values(tees),...Object.values(reducers),...Object.values(newhope)];
   const zeroCount = allItems.filter(i=>i.quantity===0).length;
@@ -388,37 +342,36 @@ function App() {
     return {phi,zN};
   }), [simple,tees,reducers,newhope]);
 
-  const filteredPhis = filterPhi==="all" ? PHI_SIZES : [Number(filterPhi)];
+  const filteredPhis = filterPhi==="all"?PHI_SIZES:[Number(filterPhi)];
 
   const teeRows = useMemo(() => Object.entries(tees).filter(([,t]) => {
-    if (filterPhi!=="all" && t.main!==Number(filterPhi)) return false;
-    if (filterMat!=="all" && t.mat!==filterMat) return false;
-    if (showZeroOnly && t.quantity>0) return false;
+    if (filterPhi!=="all"&&t.main!==Number(filterPhi)) return false;
+    if (filterMat!=="all"&&t.mat!==filterMat) return false;
+    if (showZeroOnly&&t.quantity>0) return false;
     return true;
   }), [tees,filterPhi,filterMat,showZeroOnly]);
 
   const redRows = useMemo(() => Object.entries(reducers).filter(([,r]) => {
-    if (filterPhi!=="all" && r.from!==Number(filterPhi)) return false;
-    if (filterMat!=="all" && r.mat!==filterMat) return false;
-    if (showZeroOnly && r.quantity>0) return false;
+    if (filterPhi!=="all"&&r.from!==Number(filterPhi)) return false;
+    if (filterMat!=="all"&&r.mat!==filterMat) return false;
+    if (showZeroOnly&&r.quantity>0) return false;
     return true;
   }), [reducers,filterPhi,filterMat,showZeroOnly]);
 
   const nhRows = useMemo(() => Object.entries(newhope)
     .filter(([,n]) => {
-      if (filterPhi!=="all" && n.phi!==Number(filterPhi)) return false;
-      if (showZeroOnly && n.quantity>0) return false;
+      if (filterPhi!=="all"&&n.phi!==Number(filterPhi)) return false;
+      if (showZeroOnly&&n.quantity>0) return false;
       return true;
-    })
-    .sort((a,b)=>a[1].phi-b[1].phi||a[1].length-b[1].length),
+    }).sort((a,b)=>a[1].phi-b[1].phi||a[1].length-b[1].length),
   [newhope,filterPhi,showZeroOnly]);
 
-  const btnStyle = active => ({ padding:"6px 12px", border:"none", borderRadius:"6px", fontSize:"12px", fontWeight:700, cursor:"pointer", background: active?"#3b82f6":"#334155", color: active?"#fff":"#94a3b8" });
+  const btnStyle = active => ({ padding:"6px 12px", border:"none", borderRadius:"6px", fontSize:"12px", fontWeight:700, cursor:"pointer", background:active?"#3b82f6":"#334155", color:active?"#fff":"#94a3b8" });
   const tableHead = (cols,color,bg,border) => <thead><tr style={{ background:bg, borderBottom:`2px solid ${border}` }}>{cols.map(h=><th key={h} style={{ padding:"11px 12px", textAlign:"left", fontSize:"11px", fontWeight:700, color, whiteSpace:"nowrap" }}>{h}</th>)}</tr></thead>;
   const adjBtn = onClick => <button onClick={onClick} style={{ padding:"3px 9px", border:"1.5px solid #e2e8f0", borderRadius:"5px", background:"#fff", fontSize:"11px", cursor:"pointer", fontWeight:700, color:"#475569" }}>入出庫</button>;
   const delBtn = onClick => <button onClick={onClick} style={{ padding:"3px 9px", border:"1.5px solid #fecaca", borderRadius:"5px", background:"#fef2f2", fontSize:"11px", cursor:"pointer", fontWeight:700, color:"#dc2626" }}>削除</button>;
 
-  if (!fbReady || loading) return (
+  if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", flexDirection:"column", gap:"16px", color:"#64748b" }}>
       <div style={{ fontSize:"40px" }}>🌀</div>
       <div style={{ fontSize:"16px", fontWeight:700 }}>データを読み込み中...</div>
@@ -443,7 +396,7 @@ function App() {
       <div style={{ maxWidth:"1200px", margin:"0 auto", padding:"20px 14px" }}>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:"10px", marginBottom:"18px" }}>
           {[
-            { label:"在庫なし", value:`${zeroCount} 件`, icon:"⚠", color: zeroCount>0?ZERO_COLOR:undefined },
+            { label:"在庫なし", value:`${zeroCount} 件`, icon:"⚠", color:zeroCount>0?ZERO_COLOR:undefined },
             { label:"総在庫数", value:`${totalQty.toLocaleString()} 点`, icon:"📦" },
             { label:"T管",      value:`${Object.keys(tees).length} 種`, icon:"🟢" },
             { label:"レジューサー", value:`${Object.keys(reducers).length} 種`, icon:"🔻" },
@@ -476,16 +429,16 @@ function App() {
             在庫なしのみ
           </label>
           <div style={{ marginLeft:"auto", display:"flex", gap:"6px", flexWrap:"wrap" }}>
-            {(tab==="phi"||tab==="tee") && <button onClick={()=>setAddModal("tee")} style={{ padding:"7px 14px", border:"none", borderRadius:"7px", background:"#15803d", color:"#fff", fontWeight:700, fontSize:"12px", cursor:"pointer" }}>＋ T管</button>}
-            {(tab==="phi"||tab==="reducer") && <button onClick={()=>setAddModal("reducer")} style={{ padding:"7px 14px", border:"none", borderRadius:"7px", background:"#7c3aed", color:"#fff", fontWeight:700, fontSize:"12px", cursor:"pointer" }}>＋ レジューサー</button>}
-            {(tab==="phi"||tab==="newhope") && <button onClick={()=>setAddModal("newhope")} style={{ padding:"7px 14px", border:"none", borderRadius:"7px", background:"#0891b2", color:"#fff", fontWeight:700, fontSize:"12px", cursor:"pointer" }}>＋ ニューホープ</button>}
+            {(tab==="phi"||tab==="tee")      && <button onClick={()=>setAddModal("tee")}     style={{ padding:"7px 14px", border:"none", borderRadius:"7px", background:"#15803d", color:"#fff", fontWeight:700, fontSize:"12px", cursor:"pointer" }}>＋ T管</button>}
+            {(tab==="phi"||tab==="reducer")  && <button onClick={()=>setAddModal("reducer")} style={{ padding:"7px 14px", border:"none", borderRadius:"7px", background:"#7c3aed", color:"#fff", fontWeight:700, fontSize:"12px", cursor:"pointer" }}>＋ レジューサー</button>}
+            {(tab==="phi"||tab==="newhope")  && <button onClick={()=>setAddModal("newhope")} style={{ padding:"7px 14px", border:"none", borderRadius:"7px", background:"#0891b2", color:"#fff", fontWeight:700, fontSize:"12px", cursor:"pointer" }}>＋ ニューホープ</button>}
           </div>
           <div style={{ width:"100%", display:"flex", flexWrap:"wrap", gap:"4px" }}>
             {phiSummary.map(({phi,zN})=>(
               <span key={phi} onClick={()=>setFilterPhi(prev=>prev===String(phi)?"all":String(phi))} style={{
                 padding:"3px 10px", borderRadius:"14px", fontSize:"11px", fontWeight:700, cursor:"pointer",
-                background: filterPhi===String(phi)?"#1e293b":zN>0?"#fee2e2":"#f1f5f9",
-                color: filterPhi===String(phi)?"#fff":zN>0?ZERO_COLOR:"#94a3b8",
+                background:filterPhi===String(phi)?"#1e293b":zN>0?"#fee2e2":"#f1f5f9",
+                color:filterPhi===String(phi)?"#fff":zN>0?ZERO_COLOR:"#94a3b8",
                 border:`1px solid ${filterPhi===String(phi)?"#1e293b":zN>0?"#fca5a5":"#e2e8f0"}`,
               }}>Φ{phi}{zN>0?` ✕${zN}`:""}</span>
             ))}
@@ -500,11 +453,11 @@ function App() {
                 filterMat={filterMat}
                 onSimpleAdjust={row=>setAdjustTarget({type:"simple",id:row.id,item:row,label:`Φ${row.phi} ${row.def.name}`,unit:row.def.unit})}
                 onTeeAdjust={(id,t)=>setAdjustTarget({type:"tee",id,item:t,label:teeLabel(t)})}
-                onTeeDelete={id=>dbRemove(`tees/${id}`)}
+                onTeeDelete={id=>window.dbRemove(`tees/${id}`)}
                 onRedAdjust={(id,r)=>setAdjustTarget({type:"reducer",id,item:r,label:reducerLabel(r)})}
-                onRedDelete={id=>dbRemove(`reducers/${id}`)}
+                onRedDelete={id=>window.dbRemove(`reducers/${id}`)}
                 onNhAdjust={(id,n)=>setAdjustTarget({type:"newhope",id,item:n,label:nhLabel(n),unit:"本"})}
-                onNhDelete={id=>dbRemove(`newhope/${id}`)}
+                onNhDelete={id=>window.dbRemove(`newhope/${id}`)}
               />
             ))}
           </div>
@@ -515,8 +468,8 @@ function App() {
             <table style={{ width:"100%", borderCollapse:"collapse", minWidth:"480px" }}>
               {tableHead(["片側Φ","片側Φ","取り出しΦ","材質","在庫","状態","操作"],"#15803d","#f0fdf4","#bbf7d0")}
               <tbody>
-                {teeRows.length===0 ? <tr><td colSpan={7} style={{ textAlign:"center", padding:"40px", color:"#94a3b8" }}>該当なし</td></tr>
-                  : teeRows.map(([id,t],i)=>(
+                {teeRows.length===0?<tr><td colSpan={7} style={{ textAlign:"center", padding:"40px", color:"#94a3b8" }}>該当なし</td></tr>
+                  :teeRows.map(([id,t],i)=>(
                   <tr key={id} style={{ borderBottom:"1px solid #f1f5f9", background:t.quantity===0?"#fff8f8":i%2===0?"#fff":"#f9fafb" }}>
                     <td style={{ padding:"10px 12px", fontWeight:800, color:"#1e293b" }}>Φ{t.main}</td>
                     <td style={{ padding:"10px 12px", fontWeight:700, color:t.body!==t.main?"#ea580c":"#94a3b8" }}>Φ{t.body}</td>
@@ -524,7 +477,7 @@ function App() {
                     <td style={{ padding:"10px 12px", fontSize:"13px", color:"#64748b" }}>{MATERIALS.find(m=>m.key===t.mat)?.label}</td>
                     <td style={{ padding:"10px 12px", fontWeight:800, color:t.quantity===0?ZERO_COLOR:"#1e293b", fontSize:"15px" }}>{t.quantity}</td>
                     <td style={{ padding:"10px 12px" }}><ZeroBadge qty={t.quantity} /></td>
-                    <td style={{ padding:"10px 12px" }}><div style={{ display:"flex", gap:"5px" }}>{adjBtn(()=>setAdjustTarget({type:"tee",id,item:t,label:teeLabel(t)}))}{delBtn(()=>dbRemove(`tees/${id}`))}</div></td>
+                    <td style={{ padding:"10px 12px" }}><div style={{ display:"flex", gap:"5px" }}>{adjBtn(()=>setAdjustTarget({type:"tee",id,item:t,label:teeLabel(t)}))}{delBtn(()=>window.dbRemove(`tees/${id}`))}</div></td>
                   </tr>
                 ))}
               </tbody>
@@ -537,15 +490,15 @@ function App() {
             <table style={{ width:"100%", borderCollapse:"collapse", minWidth:"480px" }}>
               {tableHead(["大口径Φ（元）","小口径Φ（先）","材質","在庫","状態","操作"],"#7c3aed","#f5f3ff","#ddd6fe")}
               <tbody>
-                {redRows.length===0 ? <tr><td colSpan={6} style={{ textAlign:"center", padding:"40px", color:"#94a3b8" }}>該当なし</td></tr>
-                  : redRows.map(([id,r],i)=>(
+                {redRows.length===0?<tr><td colSpan={6} style={{ textAlign:"center", padding:"40px", color:"#94a3b8" }}>該当なし</td></tr>
+                  :redRows.map(([id,r],i)=>(
                   <tr key={id} style={{ borderBottom:"1px solid #f1f5f9", background:r.quantity===0?"#fff8f8":i%2===0?"#fff":"#f9fafb" }}>
                     <td style={{ padding:"10px 12px", fontWeight:800, color:"#1e293b" }}>Φ{r.from}</td>
                     <td style={{ padding:"10px 12px", fontWeight:700, color:"#374151" }}>Φ{r.to}</td>
                     <td style={{ padding:"10px 12px", fontSize:"13px", color:"#64748b" }}>{MATERIALS.find(m=>m.key===r.mat)?.label}</td>
                     <td style={{ padding:"10px 12px", fontWeight:800, color:r.quantity===0?ZERO_COLOR:"#1e293b", fontSize:"15px" }}>{r.quantity}</td>
                     <td style={{ padding:"10px 12px" }}><ZeroBadge qty={r.quantity} /></td>
-                    <td style={{ padding:"10px 12px" }}><div style={{ display:"flex", gap:"5px" }}>{adjBtn(()=>setAdjustTarget({type:"reducer",id,item:r,label:reducerLabel(r)}))}{delBtn(()=>dbRemove(`reducers/${id}`))}</div></td>
+                    <td style={{ padding:"10px 12px" }}><div style={{ display:"flex", gap:"5px" }}>{adjBtn(()=>setAdjustTarget({type:"reducer",id,item:r,label:reducerLabel(r)}))}{delBtn(()=>window.dbRemove(`reducers/${id}`))}</div></td>
                   </tr>
                 ))}
               </tbody>
@@ -558,14 +511,14 @@ function App() {
             <table style={{ width:"100%", borderCollapse:"collapse", minWidth:"400px" }}>
               {tableHead(["Φ","長さ","本数","状態","操作"],"#0891b2","#ecfeff","#a5f3fc")}
               <tbody>
-                {nhRows.length===0 ? <tr><td colSpan={5} style={{ textAlign:"center", padding:"40px", color:"#94a3b8" }}>該当なし</td></tr>
-                  : nhRows.map(([id,n],i)=>(
+                {nhRows.length===0?<tr><td colSpan={5} style={{ textAlign:"center", padding:"40px", color:"#94a3b8" }}>該当なし</td></tr>
+                  :nhRows.map(([id,n],i)=>(
                   <tr key={id} style={{ borderBottom:"1px solid #f1f5f9", background:n.quantity===0?"#fff8f8":i%2===0?"#fff":"#f9fafb" }}>
                     <td style={{ padding:"10px 12px", fontWeight:800, color:"#1e293b" }}>Φ{n.phi}</td>
                     <td style={{ padding:"10px 12px", fontWeight:700, color:"#0891b2" }}>{n.length}m</td>
                     <td style={{ padding:"10px 12px", fontWeight:800, color:n.quantity===0?ZERO_COLOR:"#1e293b", fontSize:"15px" }}>{n.quantity} <span style={{ fontSize:"11px", color:"#94a3b8", fontWeight:400 }}>本</span></td>
                     <td style={{ padding:"10px 12px" }}><ZeroBadge qty={n.quantity} /></td>
-                    <td style={{ padding:"10px 12px" }}><div style={{ display:"flex", gap:"5px" }}>{adjBtn(()=>setAdjustTarget({type:"newhope",id,item:n,label:nhLabel(n),unit:"本"}))}{delBtn(()=>dbRemove(`newhope/${id}`))}</div></td>
+                    <td style={{ padding:"10px 12px" }}><div style={{ display:"flex", gap:"5px" }}>{adjBtn(()=>setAdjustTarget({type:"newhope",id,item:n,label:nhLabel(n),unit:"本"}))}{delBtn(()=>window.dbRemove(`newhope/${id}`))}</div></td>
                   </tr>
                 ))}
               </tbody>
@@ -579,9 +532,9 @@ function App() {
       </div>
 
       {adjustTarget && <AdjustModal title={`入出庫 — ${adjustTarget.label}`} item={adjustTarget.item} unit={adjustTarget.unit} onApply={applyAdjust} onClose={()=>setAdjustTarget(null)} />}
-      {addModal==="tee"      && <Modal title="T管を追加"         onClose={()=>setAddModal(null)}><TeeForm      onSave={addTee}     onClose={()=>setAddModal(null)} /></Modal>}
-      {addModal==="reducer"  && <Modal title="レジューサーを追加" onClose={()=>setAddModal(null)}><ReducerForm  onSave={addReducer} onClose={()=>setAddModal(null)} /></Modal>}
-      {addModal==="newhope"  && <Modal title="ニューホープを追加" onClose={()=>setAddModal(null)}><NewhopeForm  onSave={addNewhope} onClose={()=>setAddModal(null)} /></Modal>}
+      {addModal==="tee"     && <Modal title="T管を追加"         onClose={()=>setAddModal(null)}><TeeForm      onSave={addTee}     onClose={()=>setAddModal(null)} /></Modal>}
+      {addModal==="reducer" && <Modal title="レジューサーを追加" onClose={()=>setAddModal(null)}><ReducerForm  onSave={addReducer} onClose={()=>setAddModal(null)} /></Modal>}
+      {addModal==="newhope" && <Modal title="ニューホープを追加" onClose={()=>setAddModal(null)}><NewhopeForm  onSave={addNewhope} onClose={()=>setAddModal(null)} /></Modal>}
     </div>
   );
 }
