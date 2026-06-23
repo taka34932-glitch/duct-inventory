@@ -305,12 +305,18 @@ function App() {
 
   useEffect(() => {
     window.dbListen("simple", val => {
-      if (val) { setSimple(val); setLoading(false); }
-      else { window.dbSet("simple", buildInitialSimple()); }
+      if (val) {
+        setSimple(val);
+      } else {
+        const initial = buildInitialSimple();
+        window.dbSet("simple", initial);
+        setSimple(initial);
+      }
+      setLoading(false);
     });
     window.dbListen("tees",     val => setTees(val||{}));
     window.dbListen("reducers", val => setReducers(val||{}));
-    window.dbListen("newhope",  val => { setNewhope(val||{}); setLoading(false); });
+    window.dbListen("newhope",  val => setNewhope(val||{}));
   }, []);
 
   const today = new Date().toISOString().slice(0,10);
