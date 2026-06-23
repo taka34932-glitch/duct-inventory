@@ -354,12 +354,13 @@ function render(){
   if(s.modal){
     const m = s.modal;
     if(m.type==='confirmDel'){
+      window._delPath = m.dbPath;
       html += `<div class="modal-bg" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
         <h2>削除の確認</h2>
         <p style="color:#64748b;font-size:14px;margin-bottom:20px"><strong>${m.label}</strong> を削除してもよいですか？<br>この操作は元に戻せません。</p>
         <div class="row-btn">
           <button class="cancel" onclick="closeModal()">キャンセル</button>
-          <button class="save" style="background:#dc2626" onclick="execDeleteBtn(this)" data-path="${m.dbPath}">削除する</button>
+          <button class="save" style="background:#dc2626" onclick="execDelete()">削除する</button>
         </div>
       </div></div>`;
     }
@@ -438,8 +439,7 @@ function togglePhi(p){ state.filterPhi=state.filterPhi==p?'all':String(p); rende
 function openModal(t){ state.modal={type:t}; render(); }
 function closeModal(){ state.modal=null; render(); }
 function confirmDelete(path, label){ state.modal={type:'confirmDel', dbPath:path, label:label}; render(); }
-function execDelete(path){ dbRemove(path); closeModal(); }
-function execDeleteBtn(btn){ dbRemove(btn.dataset.path); closeModal(); }
+function execDelete(){ dbRemove(window._delPath); window._delPath=null; closeModal(); }
 
 function openAdj(type,id,qty,label,unit){
   state.modal={type:'adj',dataType:type,id,qty,label,unit};
