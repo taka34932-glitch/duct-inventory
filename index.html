@@ -413,6 +413,116 @@ function render(){
 }
 
 // アクション
+function renderSearch(){
+  const sc = state.search;
+  const CATS_LIST = [
+    {k:'spiral',l:'スパイラル管'},{k:'elbow45',l:'エルボ 45°'},
+    {k:'elbow90',l:'エルボ 90°'},{k:'nipple',l:'ニップル'},
+    {k:'flexi',l:'フレキ類'},{k:'tee',l:'T管'},
+    {k:'reducer',l:'レジューサー'},{k:'newhope',l:'ニューホープ'},
+  ];
+  const FLEXI_LIST = [
+    {k:'',l:'すべて'},{k:'flexi_al',l:'アルミフレキ'},{k:'flexi_hi',l:'ハイホース'},
+    {k:'flexi_iron',l:'鉄フレキ'},{k:'flexi_ft',l:'FTフレキ'},{k:'flexi_ty',l:'タイロンフレキ'},
+  ];
+  function chip(label, active, onclick){
+    return '<button onclick="'+onclick+'" style="padding:6px 12px;border:1.5px solid '+(active?'#3b82f6':'#e2e8f0')+';border-radius:16px;background:'+(active?'#eff6ff':'#fff')+';color:'+(active?'#2563eb':'#64748b')+';font-size:12px;font-weight:700;cursor:pointer">'+label+'</button>';
+  }
+  function sel(val, onchange){
+    var h='<select onchange="'+onchange+'" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:7px 8px;font-size:13px;color:#1e293b;background:#f8fafc;width:100%">';
+    h+='<option value="all"'+(val==='all'?' selected':'')+'>すべて</option>';
+    PHI.forEach(function(p){ h+='<option value="'+p+'"'+(String(val)===String(p)?' selected':'')+'>Φ'+p+'</option>'; });
+    return h+'</select>';
+  }
+  var h='<div style="background:#fff;border-radius:10px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.07);overflow:hidden">';
+  h+='<div onclick="toggleSearch()" style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer">';
+  h+='<span style="font-weight:700;font-size:14px;color:#1e293b">🔍 検索</span>';
+  h+='<span style="color:#94a3b8;font-size:13px">'+(sc.open?'▲':'▼')+'</span></div>';
+  if(sc.open){
+    h+='<div style="padding:0 16px 16px;border-top:1px solid #f1f5f9">';
+    h+='<div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">カテゴリ</label><div style="display:flex;flex-wrap:wrap;gap:6px">';
+    CATS_LIST.forEach(function(c){ h+=chip(c.l, sc.cat===c.k, "setSearchCat('"+c.k+"')"); });
+    h+='</div></div>';
+    if(sc.cat && sc.cat!=='flexi' && sc.cat!=='newhope'){
+      h+='<div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">材質</label><div style="display:flex;gap:6px">';
+      [{k:'all',l:'すべて'}].concat(MATS).forEach(function(m){ h+=chip(m.l, sc.mat===m.k, "setSearchMat('"+m.k+"')"); });
+      h+='</div></div>';
+    }
+    if(sc.cat==='flexi'){
+      h+='<div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">種類</label><div style="display:flex;flex-wrap:wrap;gap:6px">';
+      FLEXI_LIST.forEach(function(f){ h+=chip(f.l, sc.flexi===f.k, "setSearchFlexi('"+f.k+"')"); });
+      h+='</div></div>';
+    }
+    if(['spiral','elbow45','elbow90','nipple','flexi','newhope'].indexOf(sc.cat)>=0){
+      h+='<div style="margin-top:12px"><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">Φサイズ</label>'+sel(sc.phi1,"setSearchPhi1(this.value)")+'</div>';
+    }
+    if(sc.cat==='tee'){
+      h+='<div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+      h+='<div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">片側Φ</label>'+sel(sc.phi1,"setSearchPhi1(this.value)")+'</div>';
+      h+='<div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">片側Φ</label>'+sel(sc.phi2,"setSearchPhi2(this.value)")+'</div>';
+      h+='<div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">取り出しΦ</label>'+sel(sc.phi3,"setSearchPhi3(this.value)")+'</div>';
+      h+='</div>';
+    }
+    if(sc.cat==='reducer'){
+      h+='<div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+      h+='<div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">大口径Φ（元）</label>'+sel(sc.phi1,"setSearchPhi1(this.value)")+'</div>';
+      h+='<div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">小口径Φ（先）</label>'+sel(sc.phi2,"setSearchPhi2(this.value)")+'</div>';
+      h+='</div>';
+    }
+    if(sc.cat){
+      var results=[];
+      if(['spiral','elbow45','elbow90','nipple','flexi'].indexOf(sc.cat)>=0){
+        Object.entries(state.simple).forEach(function(e){
+          var v=e[1], def=getItemDef(v.itemKey);
+          if(!def) return;
+          if(getCat(v.itemKey)!==sc.cat) return;
+          if(sc.cat!=='flexi' && sc.mat!=='all' && !v.itemKey.endsWith('_'+sc.mat)) return;
+          if(sc.cat==='flexi' && sc.flexi && v.itemKey!==sc.flexi) return;
+          if(sc.phi1!=='all' && v.phi!==Number(sc.phi1)) return;
+          results.push({label:'Φ'+v.phi+' '+def.n, qty:v.quantity, unit:def.u||'個'});
+        });
+      } else if(sc.cat==='newhope'){
+        Object.entries(state.newhope).forEach(function(e){
+          var n=e[1];
+          if(sc.phi1!=='all' && n.phi!==Number(sc.phi1)) return;
+          results.push({label:nhLabel(n), qty:n.quantity, unit:'本'});
+        });
+      } else if(sc.cat==='tee'){
+        Object.entries(state.tees).forEach(function(e){
+          var t=e[1];
+          if(sc.mat!=='all' && t.mat!==sc.mat) return;
+          if(sc.phi1!=='all' && t.main!==Number(sc.phi1) && t.body!==Number(sc.phi1)) return;
+          if(sc.phi2!=='all' && t.main!==Number(sc.phi2) && t.body!==Number(sc.phi2)) return;
+          if(sc.phi3!=='all' && t.branch!==Number(sc.phi3)) return;
+          results.push({label:teeLabel(t), qty:t.quantity, unit:'個'});
+        });
+      } else if(sc.cat==='reducer'){
+        Object.entries(state.reducers).forEach(function(e){
+          var r=e[1];
+          if(sc.mat!=='all' && r.mat!==sc.mat) return;
+          if(sc.phi1!=='all' && r.from!==Number(sc.phi1)) return;
+          if(sc.phi2!=='all' && r.to!==Number(sc.phi2)) return;
+          results.push({label:redLabel(r), qty:r.quantity, unit:'個'});
+        });
+      }
+      h+='<div style="margin-top:14px;border-top:1px solid #f1f5f9;padding-top:12px">';
+      h+='<div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px">検索結果 '+results.length+'件</div>';
+      if(!results.length){
+        h+='<div style="color:#94a3b8;font-size:13px;padding:8px 0">該当なし</div>';
+      } else {
+        results.forEach(function(r){
+          h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f1f5f9">';
+          h+='<span style="font-size:13px;color:#374151">'+r.label+'</span>';
+          h+='<span style="font-weight:800;font-size:15px;color:'+(r.qty===0?'#dc2626':'#1e293b')+'">'+r.qty+' <span style="font-size:11px;color:#94a3b8;font-weight:400">'+r.unit+'</span></span></div>';
+        });
+      }
+      h+='</div>';
+    }
+    h+='</div>';
+  }
+  return h+'</div>';
+}
+
 function setTab(t){ state.tab=t; render(); }
 function toggleSearch(){ state.search.open=!state.search.open; render(); }
 function setSearchCat(c){ state.search.cat=c; state.search.mat='all'; state.search.phi1='all'; state.search.phi2='all'; state.search.phi3='all'; state.search.flexi=''; render(); }
