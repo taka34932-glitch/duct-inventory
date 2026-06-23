@@ -134,7 +134,7 @@ const ITEM_ORDER = ALL_ITEMS.map(i=>i.k);
 // 状態
 let state = {
   simple:{}, tees:{}, reducers:{}, newhope:{},
-  tab:"phi", filterPhi:"all", filterMat:"all", showZero:false, matTab:"z",
+  tab:"phi", filterPhi:"all", filterMat:"all", showZero:false, matTab:"z", lastUpdate:null,
   modal:null
 };
 
@@ -185,6 +185,7 @@ function render(){
     <div class="sum-card"><span class="icon">🟢</span><div><div class="label">T管</div><div class="val">${Object.keys(s.tees).length} 種</div></div></div>
     <div class="sum-card"><span class="icon">🔻</span><div><div class="label">レジューサー</div><div class="val">${Object.keys(s.reducers).length} 種</div></div></div>
     <div class="sum-card"><span class="icon">💧</span><div><div class="label">ニューホープ</div><div class="val">${Object.keys(s.newhope).length} 種</div></div></div>
+    <div class="sum-card" style="grid-column:1/-1"><span class="icon">🕐</span><div><div class="label">最終更新</div><div style="font-size:13px;font-weight:700;color:#1e293b;margin-top:2px">${s.lastUpdate?s.lastUpdate.content:'まだ更新なし'}</div>${s.lastUpdate?`<div style="font-size:11px;color:#94a3b8;margin-top:2px">${s.lastUpdate.time}</div>`:''}</div></div>
   </div>
   <div class="tabs">
     <button class="tab${s.tab==='phi'?' active':''}" onclick="setTab('phi')">Φ別カード</button>
@@ -254,19 +255,19 @@ function render(){
       html += `<div class="sec-head" style="background:#f0fdf4;color:#15803d;border-bottom:1px solid #bbf7d0">🟢 T管</div>`;
       if(!myTees.length) html += `<div class="row"><span style="font-size:12px;color:#94a3b8">登録なし</span></div>`;
       myTees.forEach(([id,t])=>{ const z=t.quantity===0;
-        html += `<div class="row${z?' zero':''}"><span class="name">${teeLabel(t)}</span><span class="qty${z?' zero':''}">${t.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('tee','${id}',${t.quantity},'${teeLabel(t)}','個')">入出庫</button><button class="btn del" onclick="dbRemove('tees/${id}')">削除</button></div>`;
+        html += `<div class="row${z?' zero':''}"><span class="name">${teeLabel(t)}</span><span class="qty${z?' zero':''}">${t.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('tee','${id}',${t.quantity},'${teeLabel(t)}','個')">入出庫</button><button class="btn del" onclick="confirmDelete('tees/'+id, teeLabel(t))">削除</button></div>`;
       });
       // レジューサー
       html += `<div class="sec-head" style="background:#f5f3ff;color:#7c3aed;border-bottom:1px solid #ddd6fe">🔻 レジューサー</div>`;
       if(!myReds.length) html += `<div class="row"><span style="font-size:12px;color:#94a3b8">登録なし</span></div>`;
       myReds.forEach(([id,r])=>{ const z=r.quantity===0;
-        html += `<div class="row${z?' zero':''}"><span class="name">${redLabel(r)}</span><span class="qty${z?' zero':''}">${r.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('reducer','${id}',${r.quantity},'${redLabel(r)}','個')">入出庫</button><button class="btn del" onclick="dbRemove('reducers/${id}')">削除</button></div>`;
+        html += `<div class="row${z?' zero':''}"><span class="name">${redLabel(r)}</span><span class="qty${z?' zero':''}">${r.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('reducer','${id}',${r.quantity},'${redLabel(r)}','個')">入出庫</button><button class="btn del" onclick="confirmDelete('reducers/'+id, redLabel(r))">削除</button></div>`;
       });
       // ニューホープ
       html += `<div class="sec-head" style="background:#ecfeff;color:#0891b2;border-bottom:1px solid #a5f3fc">💧 ニューホープ</div>`;
       if(!myNh.length) html += `<div class="row"><span style="font-size:12px;color:#94a3b8">登録なし</span></div>`;
       myNh.forEach(([id,n])=>{ const z=n.quantity===0;
-        html += `<div class="row${z?' zero':''}"><span class="name">${n.length}m</span><span class="qty${z?' zero':''}">${n.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">本</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('newhope','${id}',${n.quantity},'${nhLabel(n)}','本')">入出庫</button><button class="btn del" onclick="dbRemove('newhope/${id}')">削除</button></div>`;
+        html += `<div class="row${z?' zero':''}"><span class="name">${n.length}m</span><span class="qty${z?' zero':''}">${n.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">本</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('newhope','${id}',${n.quantity},'${nhLabel(n)}','本')">入出庫</button><button class="btn del" onclick="confirmDelete('newhope/'+id, nhLabel(n))">削除</button></div>`;
       });
       html += `</div>`;
     });
@@ -293,7 +294,7 @@ function render(){
         <td>${matLabel(t.mat)}</td>
         <td style="font-weight:800;color:${z?'#dc2626':'#1e293b'}">${t.quantity}</td>
         <td>${z?'<span class="badge">在庫なし</span>':''}</td>
-        <td><button class="btn" onclick="openAdj('tee','${id}',${t.quantity},'${teeLabel(t)}','個')">入出庫</button><button class="btn del" onclick="dbRemove('tees/${id}')">削除</button></td>
+        <td><button class="btn" onclick="openAdj('tee','${id}',${t.quantity},'${teeLabel(t)}','個')">入出庫</button><button class="btn del" onclick="confirmDelete('tees/'+id, teeLabel(t))">削除</button></td>
       </tr>`;
     });
     html += `</tbody></table></div>`;
@@ -317,7 +318,7 @@ function render(){
         <td>${matLabel(r.mat)}</td>
         <td style="font-weight:800;color:${z?'#dc2626':'#1e293b'}">${r.quantity}</td>
         <td>${z?'<span class="badge">在庫なし</span>':''}</td>
-        <td><button class="btn" onclick="openAdj('reducer','${id}',${r.quantity},'${redLabel(r)}','個')">入出庫</button><button class="btn del" onclick="dbRemove('reducers/${id}')">削除</button></td>
+        <td><button class="btn" onclick="openAdj('reducer','${id}',${r.quantity},'${redLabel(r)}','個')">入出庫</button><button class="btn del" onclick="confirmDelete('reducers/'+id, redLabel(r))">削除</button></td>
       </tr>`;
     });
     html += `</tbody></table></div>`;
@@ -339,7 +340,7 @@ function render(){
         <td style="font-weight:800">Φ${n.phi}</td><td style="font-weight:700;color:#0891b2">${n.length}m</td>
         <td style="font-weight:800;color:${z?'#dc2626':'#1e293b'}">${n.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">本</span></td>
         <td>${z?'<span class="badge">在庫なし</span>':''}</td>
-        <td><button class="btn" onclick="openAdj('newhope','${id}',${n.quantity},'${nhLabel(n)}','本')">入出庫</button><button class="btn del" onclick="dbRemove('newhope/${id}')">削除</button></td>
+        <td><button class="btn" onclick="openAdj('newhope','${id}',${n.quantity},'${nhLabel(n)}','本')">入出庫</button><button class="btn del" onclick="confirmDelete('newhope/'+id, nhLabel(n))">削除</button></td>
       </tr>`;
     });
     html += `</tbody></table></div>`;
@@ -348,6 +349,16 @@ function render(){
   // モーダル
   if(s.modal){
     const m = s.modal;
+    if(m.type==='confirmDel'){
+      html += `<div class="modal-bg" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
+        <h2>削除の確認</h2>
+        <p style="color:#64748b;font-size:14px;margin-bottom:20px"><strong>${m.label}</strong> を削除してもよいですか？<br>この操作は元に戻せません。</p>
+        <div class="row-btn">
+          <button class="cancel" onclick="closeModal()">キャンセル</button>
+          <button class="save" style="background:#dc2626" onclick="execDelete('${m.dbPath}')">削除する</button>
+        </div>
+      </div></div>`;
+    }
     if(m.type==='adj'){
       html += `<div class="modal-bg" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
         <h2>入出庫 — ${m.label}</h2>
@@ -422,6 +433,8 @@ function setShowZero(v){ state.showZero=v; render(); }
 function togglePhi(p){ state.filterPhi=state.filterPhi==p?'all':String(p); render(); }
 function openModal(t){ state.modal={type:t}; render(); }
 function closeModal(){ state.modal=null; render(); }
+function confirmDelete(path, label){ state.modal={type:'confirmDel', dbPath:path, label:label}; render(); }
+function execDelete(path){ dbRemove(path); closeModal(); }
 
 function openAdj(type,id,qty,label,unit){
   state.modal={type:'adj',dataType:type,id,qty,label,unit};
@@ -432,10 +445,14 @@ function applyAdj(sign){
   if(!d||d<=0)return;
   const m=state.modal;
   const newQty=Math.max(0,m.qty+sign*d);
-  const today=new Date().toISOString().slice(0,10);
+  const now=new Date();
+  const today=now.toISOString().slice(0,10);
+  const timeStr=`${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   const base=m.dataType==='simple'?'simple':m.dataType==='tee'?'tees':m.dataType==='reducer'?'reducers':'newhope';
   dbSet(`${base}/${m.id}/quantity`,newQty);
   dbSet(`${base}/${m.id}/updatedAt`,today);
+  const action=sign>0?`＋${d}`:`－${d}`;
+  dbSet('lastUpdate',{content:`${m.label} ${action}${m.unit} → ${newQty}${m.unit}`,time:timeStr});
   closeModal();
 }
 
@@ -474,6 +491,7 @@ function saveNewhope(){
 }
 
 // Firebase リスナー
+db.ref('lastUpdate').on('value',snap=>{ state.lastUpdate=snap.val()||null; render(); });
 db.ref('simple').on('value',snap=>{
   const val=snap.val();
   if(val){ state.simple=val; }
