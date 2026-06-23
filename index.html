@@ -463,9 +463,11 @@ function applyAdj(sign){
 
 function saveTee(){
   const today=new Date().toISOString().slice(0,10);
+  const a=Number(document.getElementById('t-main').value);
+  const b=Number(document.getElementById('t-body').value);
   dbPush('tees',{
-    main:Number(document.getElementById('t-main').value),
-    body:Number(document.getElementById('t-body').value),
+    main:Math.min(a,b),
+    body:Math.max(a,b),
     branch:Number(document.getElementById('t-branch').value),
     mat:document.getElementById('t-mat').value,
     quantity:Number(document.getElementById('t-qty').value),
