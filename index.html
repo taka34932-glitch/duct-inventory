@@ -196,6 +196,40 @@ function render(){
   // 検索パネル
   html += renderSearch();
 
+  // タブ
+  html += '<div class="tabs">';
+  html += '<button class="tab'+(s.tab==='phi'?' active':'')+'" onclick="setTab(\'phi\')">Φ別カード</button>';
+  html += '<button class="tab'+(s.tab==='tee'?' active':'')+'" onclick="setTab(\'tee\')">T管</button>';
+  html += '<button class="tab'+(s.tab==='reducer'?' active':'')+'" onclick="setTab(\'reducer\')">レジューサー</button>';
+  html += '<button class="tab'+(s.tab==='newhope'?' active':'')+'" onclick="setTab(\'newhope\')">ニューホープ</button>';
+  html += '</div>';
+
+  // 亜鉛/ステン・ガルバ切り替え
+  if(s.tab==='phi'||s.tab==='tee'){
+    html += '<div style="display:flex;gap:8px;margin-bottom:12px">';
+    html += '<button onclick="setMatTab(\'z\')" style="padding:7px 20px;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;background:'+(s.matTab==='z'?'#1e293b':'#e2e8f0')+';color:'+(s.matTab==='z'?'#fff':'#64748b')+'">亜鉛</button>';
+    html += '<button onclick="setMatTab(\'sg\')" style="padding:7px 20px;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;background:'+(s.matTab==='sg'?'#1e293b':'#e2e8f0')+';color:'+(s.matTab==='sg'?'#fff':'#64748b')+'">ステン・ガルバ</button>';
+    html += '</div>';
+  }
+
+  // フィルター
+  html += '<div class="filters">';
+  html += '<div><label>Φサイズ</label><select onchange="setFilterPhi(this.value)">';
+  html += '<option value="all"'+(s.filterPhi==='all'?' selected':'')+'>すべて</option>';
+  PHI.forEach(p=>{ html += '<option value="'+p+'"'+(s.filterPhi==p?' selected':'')+'>Φ'+p+'</option>'; });
+  html += '</select></div>';
+  html += '<label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#374151;padding-bottom:2px"><input type="checkbox" '+(s.showZero?'checked':'')+' onchange="setShowZero(this.checked)" style="width:15px;height:15px;border:none"> 在庫なしのみ</label>';
+  html += '<div class="add-btns">';
+  if(s.tab==='phi'||s.tab==='tee')     html += '<button class="add-btn" style="background:#15803d" onclick="openModal(\'tee\')">＋ T管</button>';
+  if(s.tab==='phi'||s.tab==='reducer') html += '<button class="add-btn" style="background:#7c3aed" onclick="openModal(\'reducer\')">＋ レジューサー</button>';
+  if(s.tab==='phi'||s.tab==='newhope') html += '<button class="add-btn" style="background:#0891b2" onclick="openModal(\'newhope\')">＋ ニューホープ</button>';
+  html += '</div>';
+  html += '<div class="phi-chips">';
+  PHI.forEach(phi=>{
+    html += '<span class="chip'+(phiZero[phi]>0?' warn':'')+(s.filterPhi==phi?' active':'')+'" onclick="togglePhi('+phi+')">Φ'+phi+(phiZero[phi]>0?' ✕'+phiZero[phi]:'')+' </span>';
+  });
+  html += '</div></div>';
+
   if(s.tab==='phi'){
     const phis = s.filterPhi==='all'?PHI:[Number(s.filterPhi)];
     html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">';
