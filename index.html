@@ -195,34 +195,6 @@ function render(){
 
   // 検索パネル
   html += renderSearch();
-  <div class="tabs">
-    <button class="tab${s.tab==='phi'?' active':''}" onclick="setTab('phi')">Φ別カード</button>
-    <button class="tab${s.tab==='tee'?' active':''}" onclick="setTab('tee')">T管</button>
-    <button class="tab${s.tab==='reducer'?' active':''}" onclick="setTab('reducer')">レジューサー</button>
-    <button class="tab${s.tab==='newhope'?' active':''}" onclick="setTab('newhope')">ニューホープ</button>
-  </div>
-  ${(s.tab==='phi'||s.tab==='tee')?`<div style="display:flex;gap:8px;margin-bottom:12px">
-    <button onclick="setMatTab('z')" style="padding:7px 20px;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;background:${s.matTab==='z'?'#1e293b':'#e2e8f0'};color:${s.matTab==='z'?'#fff':'#64748b'}">亜鉛</button>
-    <button onclick="setMatTab('sg')" style="padding:7px 20px;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;background:${s.matTab==='sg'?'#1e293b':'#e2e8f0'};color:${s.matTab==='sg'?'#fff':'#64748b'}">ステン・ガルバ</button>
-  </div>`:''}
-  <div class="filters">
-    <div><label>Φサイズ</label><select onchange="setFilterPhi(this.value)">
-      <option value="all"${s.filterPhi==='all'?' selected':''}>すべて</option>
-      ${PHI.map(p=>`<option value="${p}"${s.filterPhi==p?' selected':''}>Φ${p}</option>`).join('')}
-    </select></div>
-
-    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#374151;padding-bottom:2px">
-      <input type="checkbox" ${s.showZero?'checked':''} onchange="setShowZero(this.checked)" style="width:15px;height:15px;border:none"> 在庫なしのみ
-    </label>
-    <div class="add-btns">
-      ${(s.tab==='phi'||s.tab==='tee')?'<button class="add-btn" style="background:#15803d" onclick="openModal(\'tee\')">＋ T管</button>':''}
-      ${(s.tab==='phi'||s.tab==='reducer')?'<button class="add-btn" style="background:#7c3aed" onclick="openModal(\'reducer\')">＋ レジューサー</button>':''}
-      ${(s.tab==='phi'||s.tab==='newhope')?'<button class="add-btn" style="background:#0891b2" onclick="openModal(\'newhope\')">＋ ニューホープ</button>':''}
-    </div>
-    <div class="phi-chips">
-      ${PHI.map(phi=>`<span class="chip${phiZero[phi]>0?' warn':''}${s.filterPhi==phi?' active':''}" onclick="togglePhi(${phi})">Φ${phi}${phiZero[phi]>0?` ✕${phiZero[phi]}`:''}</span>`).join('')}
-    </div>
-  </div>`;
 
   if(s.tab==='phi'){
     const phis = s.filterPhi==='all'?PHI:[Number(s.filterPhi)];
