@@ -126,7 +126,7 @@ const CATS = {
   nipple:{label:"ニップル",icon:"⚪",color:"#475569",bg:"#f8fafc",border:"#e2e8f0",
     items:[{k:"nipple_z",n:"ニップル（亜鉛）",u:"個"},{k:"nipple_ss",n:"ニップル（ステン）",u:"個"},{k:"nipple_g",n:"ニップル（ガルバ）",u:"個"}]},
   flexi:{label:"フレキ類",icon:"🌿",color:"#065f46",bg:"#ecfdf5",border:"#6ee7b7",
-    items:[{k:"flexi_al",n:"アルミフレキ（10m）",u:"本"},{k:"flexi_iron",n:"鉄フレキ（2m）",u:"本"},{k:"flexi_hi",n:"ハイホース（7.5m）",u:"本"},{k:"flexi_ft",n:"FTフレキ（5m）",u:"本"},{k:"flexi_ty",n:"タイロンフレキ",u:"本"}]}
+    items:[{k:"flexi_al",n:"アルミフレキ（10m）",u:"箱"},{k:"flexi_hi",n:"ハイホース（7.5m）",u:"箱"},{k:"flexi_iron",n:"鉄フレキ（2m）",u:"本"},{k:"flexi_ft",n:"FTフレキ（5m）",u:"本"},{k:"flexi_ty",n:"タイロンフレキ",u:"本"}]}
 };
 const ALL_ITEMS = Object.values(CATS).flatMap(c=>c.items);
 
@@ -140,7 +140,7 @@ let state = {
 function getItemDef(k){ return ALL_ITEMS.find(i=>i.k===k); }
 function getCat(k){ return Object.entries(CATS).find(([,c])=>c.items.find(i=>i.k===k))?.[0]; }
 function matLabel(k){ return MATS.find(m=>m.k===k)?.l||k; }
-function teeLabel(t){ const m=matLabel(t.mat); return t.main===t.body?`${t.main}T${t.body}の${t.branch}取り出し（${m}）`:`${t.main}×${t.body}Tの${t.branch}取り出し（${m}）`; }
+function teeLabel(t){ const m=matLabel(t.mat); return `${t.main}T${t.body}の${t.branch}取り出し（${m}）`; }
 function redLabel(r){ return `Φ${r.from}→${r.to}（${matLabel(r.mat)}）`; }
 function nhLabel(n){ return `Φ${n.phi} / ${n.length}m`; }
 
