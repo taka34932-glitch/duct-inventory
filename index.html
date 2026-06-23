@@ -129,6 +129,7 @@ const CATS = {
     items:[{k:"flexi_al",n:"アルミフレキ（10m）",u:"箱"},{k:"flexi_hi",n:"ハイホース（7.5m）",u:"箱"},{k:"flexi_iron",n:"鉄フレキ（2m）",u:"本"},{k:"flexi_ft",n:"FTフレキ（5m）",u:"本"},{k:"flexi_ty",n:"タイロンフレキ",u:"本"}]}
 };
 const ALL_ITEMS = Object.values(CATS).flatMap(c=>c.items);
+const ITEM_ORDER = ALL_ITEMS.map(i=>i.k);
 
 // 状態
 let state = {
@@ -221,7 +222,7 @@ function render(){
       const simRows = Object.entries(s.simple)
         .filter(([,v])=>v.phi===phi)
         .map(([id,v])=>({id,...v,def:getItemDef(v.itemKey),cat:getCat(v.itemKey)}))
-        .filter(r=>{ if(!r.def)return false; if(s.matTab==='z') return r.def.k.endsWith('_z')||r.def.k.startsWith('flexi_'); return r.def.k.endsWith('_ss')||r.def.k.endsWith('_g'); });
+        .filter(r=>{ if(!r.def)return false; if(s.matTab==='z') return r.def.k.endsWith('_z')||r.def.k.startsWith('flexi_'); return r.def.k.endsWith('_ss')||r.def.k.endsWith('_g'); }).sort((a,b)=>ITEM_ORDER.indexOf(a.def.k)-ITEM_ORDER.indexOf(b.def.k));
       const myTees = Object.entries(s.tees).filter(([,t])=>t.main===phi&&(s.matTab==='z'?t.mat==='z':t.mat==='ss'||t.mat==='g'));
       const myReds = Object.entries(s.reducers).filter(([,r])=>r.from===phi&&(s.matTab==='z'?r.mat==='z':r.mat==='ss'||r.mat==='g'));
       const myNh   = Object.entries(s.newhope).filter(([,n])=>n.phi===phi);
