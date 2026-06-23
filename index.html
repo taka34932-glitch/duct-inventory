@@ -1,564 +1,457 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ダクト在庫管理</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: #f1f5f9; }
-  </style>
-</head>
-<body>
-<div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;color:#64748b"><div style="font-size:40px">🌀</div><div style="font-size:16px;font-weight:700">読み込み中...</div></div></div>
-
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ダクト在庫管理</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Sans',sans-serif;background:#f1f5f9;min-height:100vh}
+#header{background:#1e293b;color:#fff;padding:0 16px;height:54px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+#header span.title{font-weight:800;font-size:16px}
+#main{max-width:900px;margin:0 auto;padding:16px}
+.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);border:2px solid #e2e8f0;margin-bottom:14px}
+.card.alert{border-color:#fca5a5}
+.card-head{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border-bottom:1px solid #e2e8f0}
+.card-head.alert{background:#fef2f2}
+.card-head .phi{font-weight:800;font-size:16px;color:#1e293b}
+.card-head .warn{font-size:12px;color:#dc2626;font-weight:700}
+.sec-head{padding:6px 14px;font-weight:800;font-size:12px;letter-spacing:.04em}
+.row{padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
+.row.zero{background:#fff8f8}
+.row .name{flex:1 1 140px;font-size:13px;color:#374151;min-width:0}
+.row .qty{font-weight:800;font-size:15px;white-space:nowrap}
+.row .qty.zero{color:#dc2626}
+.badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;white-space:nowrap}
+.btn{padding:3px 10px;border:1.5px solid #e2e8f0;border-radius:5px;background:#fff;font-size:11px;cursor:pointer;font-weight:700;color:#475569;margin-left:auto}
+.btn.del{border-color:#fecaca;background:#fef2f2;color:#dc2626;margin-left:4px}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.sum-card{background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.07);display:flex;align-items:center;gap:10px}
+.sum-card .icon{font-size:22px}
+.sum-card .label{font-size:10px;color:#94a3b8;font-weight:600}
+.sum-card .val{font-size:18px;font-weight:800;color:#1e293b}
+.sum-card .val.warn{color:#dc2626}
+.tabs{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap}
+.tab{padding:7px 14px;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;background:#334155;color:#94a3b8}
+.tab.active{background:#3b82f6;color:#fff}
+.filters{background:#fff;border-radius:10px;padding:12px 16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.07);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.filters label{font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px}
+.filters select,.filters input[type=checkbox]{border:1.5px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:13px;color:#1e293b;background:#f8fafc}
+.add-btns{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.add-btn{padding:7px 14px;border:none;border-radius:7px;color:#fff;font-weight:700;font-size:12px;cursor:pointer}
+.phi-chips{display:flex;flex-wrap:wrap;gap:4px;width:100%;margin-top:4px}
+.chip{padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #e2e8f0;background:#f1f5f9;color:#94a3b8}
+.chip.warn{background:#fee2e2;color:#dc2626;border-color:#fca5a5}
+.chip.active{background:#1e293b;color:#fff;border-color:#1e293b}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+th{padding:11px 12px;text-align:left;font-size:11px;font-weight:700;white-space:nowrap}
+td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f1f5f9}
+tr:last-child td{border-bottom:none}
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;z-index:200}
+.modal{background:#fff;border-radius:14px;padding:24px;width:min(92vw,420px);box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.modal h2{font-size:16px;font-weight:800;color:#1e293b;margin-bottom:18px}
+.modal label{display:block;font-size:11px;font-weight:700;color:#64748b;margin-bottom:5px;margin-top:12px}
+.modal input,.modal select{width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:13px;color:#1e293b;background:#f8fafc}
+.modal .preview{font-size:12px;color:#64748b;margin-top:8px}
+.modal .preview strong{color:#1e293b}
+.modal .row-btn{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
+.modal .cancel{padding:8px 18px;border:1.5px solid #e2e8f0;border-radius:7px;background:#fff;color:#64748b;font-weight:600;cursor:pointer;font-size:13px}
+.modal .save{padding:8px 22px;border:none;border-radius:7px;background:#3b82f6;color:#fff;font-weight:700;cursor:pointer;font-size:13px}
+.adj-row{display:flex;gap:10px;margin-top:12px}
+.adj-in{padding:12px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:20px;font-weight:700;text-align:center;width:100%;background:#f8fafc}
+.btn-in{flex:1;padding:13px;border:none;border-radius:8px;color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+</style>
+</head>
+<body>
+<div id="header"><span style="font-size:20px">🌀</span><span class="title">ダクト在庫管理</span></div>
+<div id="main">
+  <div id="app"><p style="text-align:center;padding:40px;color:#64748b">読み込み中...</p></div>
+</div>
 
 <script>
-  // Firebase初期化（compat版）
-  const firebaseConfig = {
-    apiKey: "AIzaSyDdYBHxjK78-i9uswYJrrR1ZcGkyFkZoDE",
-    authDomain: "duct-inventory.firebaseapp.com",
-    databaseURL: "https://duct-inventory-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "duct-inventory",
-    storageBucket: "duct-inventory.firebasestorage.app",
-    messagingSenderId: "635885946227",
-    appId: "1:635885946227:web:ad16a6461da6696bee7106"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+// Firebase設定
+firebase.initializeApp({
+  apiKey:"AIzaSyDdYBHxjK78-i9uswYJrrR1ZcGkyFkZoDE",
+  authDomain:"duct-inventory.firebaseapp.com",
+  databaseURL:"https://duct-inventory-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"duct-inventory",
+  storageBucket:"duct-inventory.firebasestorage.app",
+  messagingSenderId:"635885946227",
+  appId:"1:635885946227:web:ad16a6461da6696bee7106"
+});
+const db = firebase.database();
 
-  window.dbSet    = (path, val) => db.ref(path).set(val);
-  window.dbRemove = (path)      => db.ref(path).remove();
-  window.dbPush   = (path, val) => db.ref(path).push(val);
-  window.dbListen = (path, cb)  => db.ref(path).on('value', snap => cb(snap.val()));
-</script>
+// 定数
+const PHI = [100,125,150,175,200,225,250,275,300,325,350];
+const MATS = [{k:"z",l:"亜鉛"},{k:"ss",l:"ステン"},{k:"g",l:"ガルバ"}];
+const CATS = {
+  spiral:{label:"スパイラル管",icon:"🔵",color:"#2563eb",bg:"#eff6ff",border:"#bfdbfe",
+    items:[{k:"spiral_z",n:"スパイラル管（亜鉛）",u:"本"},{k:"spiral_ss",n:"スパイラル管（ステン）",u:"本"},{k:"spiral_g",n:"スパイラル管（ガルバ）",u:"本"}]},
+  elbow45:{label:"エルボ 45°",icon:"🟠",color:"#ea580c",bg:"#fff7ed",border:"#fed7aa",
+    items:[{k:"elbow45_z",n:"エルボ 45°（亜鉛）",u:"個"},{k:"elbow45_ss",n:"エルボ 45°（ステン）",u:"個"},{k:"elbow45_g",n:"エルボ 45°（ガルバ）",u:"個"}]},
+  elbow90:{label:"エルボ 90°",icon:"🟡",color:"#b45309",bg:"#fffbeb",border:"#fde68a",
+    items:[{k:"elbow90_z",n:"エルボ 90°（亜鉛）",u:"個"},{k:"elbow90_ss",n:"エルボ 90°（ステン）",u:"個"},{k:"elbow90_g",n:"エルボ 90°（ガルバ）",u:"個"}]},
+  nipple:{label:"ニップル",icon:"⚪",color:"#475569",bg:"#f8fafc",border:"#e2e8f0",
+    items:[{k:"nipple_z",n:"ニップル（亜鉛）",u:"個"},{k:"nipple_ss",n:"ニップル（ステン）",u:"個"},{k:"nipple_g",n:"ニップル（ガルバ）",u:"個"}]},
+  flexi:{label:"フレキ類",icon:"🌿",color:"#065f46",bg:"#ecfdf5",border:"#6ee7b7",
+    items:[{k:"flexi_al",n:"アルミフレキ（10m）",u:"本"},{k:"flexi_iron",n:"鉄フレキ（2m）",u:"本"},{k:"flexi_hi",n:"ハイホース（7.5m）",u:"本"},{k:"flexi_ft",n:"FTフレキ（5m）",u:"本"},{k:"flexi_ty",n:"タイロンフレキ",u:"本"}]}
+};
+const ALL_ITEMS = Object.values(CATS).flatMap(c=>c.items);
 
-<script type="text/babel">
-const { useState, useMemo, useEffect } = React;
-
-const PHI_SIZES = [100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350];
-
-const SIMPLE_TYPES = {
-  spiral: {
-    label: "スパイラル管", icon: "🔵", color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe",
-    items: [
-      { key: "spiral_z",  name: "スパイラル管（亜鉛）", unit: "本" },
-      { key: "spiral_ss", name: "スパイラル管（ステン）", unit: "本" },
-      { key: "spiral_g",  name: "スパイラル管（ガルバ）", unit: "本" },
-    ],
-  },
-  elbow45: {
-    label: "エルボ 45°", icon: "🟠", color: "#ea580c", bg: "#fff7ed", border: "#fed7aa",
-    items: [
-      { key: "elbow45_z",  name: "エルボ 45°（亜鉛）", unit: "個" },
-      { key: "elbow45_ss", name: "エルボ 45°（ステン）", unit: "個" },
-      { key: "elbow45_g",  name: "エルボ 45°（ガルバ）", unit: "個" },
-    ],
-  },
-  elbow90: {
-    label: "エルボ 90°", icon: "🟡", color: "#b45309", bg: "#fffbeb", border: "#fde68a",
-    items: [
-      { key: "elbow90_z",  name: "エルボ 90°（亜鉛）", unit: "個" },
-      { key: "elbow90_ss", name: "エルボ 90°（ステン）", unit: "個" },
-      { key: "elbow90_g",  name: "エルボ 90°（ガルバ）", unit: "個" },
-    ],
-  },
-  nipple: {
-    label: "ニップル", icon: "⚪", color: "#475569", bg: "#f8fafc", border: "#e2e8f0",
-    items: [
-      { key: "nipple_z",  name: "ニップル（亜鉛）", unit: "個" },
-      { key: "nipple_ss", name: "ニップル（ステン）", unit: "個" },
-      { key: "nipple_g",  name: "ニップル（ガルバ）", unit: "個" },
-    ],
-  },
-  flexi: {
-    label: "フレキ類", icon: "🌿", color: "#065f46", bg: "#ecfdf5", border: "#6ee7b7",
-    items: [
-      { key: "flexi_al",   name: "アルミフレキ（10m）", unit: "本" },
-      { key: "flexi_iron", name: "鉄フレキ（2m）",      unit: "本" },
-      { key: "flexi_hi",   name: "ハイホース（7.5m）",  unit: "本" },
-      { key: "flexi_ft",   name: "FTフレキ（5m）",      unit: "本" },
-      { key: "flexi_ty",   name: "タイロンフレキ",      unit: "本" },
-    ],
-  },
+// 状態
+let state = {
+  simple:{}, tees:{}, reducers:{}, newhope:{},
+  tab:"phi", filterPhi:"all", filterMat:"all", showZero:false,
+  modal:null
 };
 
-const ALL_SIMPLE_DEFS = Object.values(SIMPLE_TYPES).flatMap(t => t.items);
-function getSimpleCat(key) {
-  for (const cat of Object.keys(SIMPLE_TYPES)) {
-    if (SIMPLE_TYPES[cat].items.find(i => i.key === key)) return cat;
-  }
-  return null;
+function getItemDef(k){ return ALL_ITEMS.find(i=>i.k===k); }
+function getCat(k){ return Object.entries(CATS).find(([,c])=>c.items.find(i=>i.k===k))?.[0]; }
+function matLabel(k){ return MATS.find(m=>m.k===k)?.l||k; }
+function teeLabel(t){ const m=matLabel(t.mat); return t.main===t.body?`${t.main}T${t.body}の${t.branch}取り出し（${m}）`:`${t.main}×${t.body}Tの${t.branch}取り出し（${m}）`; }
+function redLabel(r){ return `Φ${r.from}→${r.to}（${matLabel(r.mat)}）`; }
+function nhLabel(n){ return `Φ${n.phi} / ${n.length}m`; }
+
+function buildInitialSimple(){
+  const d={};
+  PHI.forEach(phi=>ALL_ITEMS.forEach(def=>{
+    d[`${phi}_${def.k}`]={phi,itemKey:def.k,quantity:0,updatedAt:"2026-06-23"};
+  }));
+  return d;
 }
 
-const MATERIALS = [
-  { key: "z",  label: "亜鉛" },
-  { key: "ss", label: "ステン" },
-  { key: "g",  label: "ガルバ" },
-];
+// Firebase操作
+function dbSet(path,val){ db.ref(path).set(val); }
+function dbRemove(path){ db.ref(path).remove(); }
+function dbPush(path,val){ db.ref(path).push(val); }
 
-const ZERO_COLOR = "#dc2626";
+// 描画
+function render(){
+  const app = document.getElementById("app");
+  const s = state;
 
-function buildInitialSimple() {
-  const data = {};
-  PHI_SIZES.forEach(phi => {
-    ALL_SIMPLE_DEFS.forEach(def => {
-      const id = `${phi}_${def.key}`;
-      data[id] = { phi, itemKey: def.key, quantity: 0, updatedAt: "2026-06-23" };
-    });
+  // サマリー計算
+  const all = [...Object.values(s.simple),...Object.values(s.tees),...Object.values(s.reducers),...Object.values(s.newhope)];
+  const zeroCount = all.filter(i=>i.quantity===0).length;
+  const totalQty = all.reduce((a,i)=>a+i.quantity,0);
+
+  // Φごとの在庫なし件数
+  const phiZero = {};
+  PHI.forEach(phi=>{
+    phiZero[phi]=
+      Object.values(s.simple).filter(i=>i.phi===phi&&i.quantity===0).length+
+      Object.values(s.tees).filter(i=>i.main===phi&&i.quantity===0).length+
+      Object.values(s.reducers).filter(i=>i.from===phi&&i.quantity===0).length+
+      Object.values(s.newhope).filter(i=>i.phi===phi&&i.quantity===0).length;
   });
-  return data;
-}
 
-function teeLabel(t) {
-  const mat = MATERIALS.find(m => m.key === t.mat)?.label;
-  if (t.main === t.body) return `${t.main}T${t.body}の${t.branch}取り出し（${mat}）`;
-  return `${t.main}×${t.body}Tの${t.branch}取り出し（${mat}）`;
-}
-function reducerLabel(r) { return `Φ${r.from}→${r.to}（${MATERIALS.find(m => m.key === r.mat)?.label}）`; }
-function nhLabel(n)      { return `Φ${n.phi} / ${n.length}m`; }
-
-function ZeroBadge({ qty }) {
-  if (qty > 0) return null;
-  return <span style={{ padding:"2px 8px", borderRadius:"10px", fontSize:"11px", fontWeight:700, background:"#fee2e2", color:ZERO_COLOR, border:"1px solid #fca5a5", whiteSpace:"nowrap" }}>在庫なし</span>;
-}
-
-function Modal({ title, onClose, children }) {
-  return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(15,23,42,0.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200 }}>
-      <div style={{ background:"#fff", borderRadius:"14px", padding:"28px", width:"min(92vw,460px)", boxShadow:"0 20px 60px rgba(0,0,0,0.2)", maxHeight:"90vh", overflowY:"auto" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"20px" }}>
-          <h2 style={{ margin:0, fontSize:"16px", fontWeight:800, color:"#1e293b" }}>{title}</h2>
-          <button onClick={onClose} style={{ background:"none", border:"none", fontSize:"22px", cursor:"pointer", color:"#94a3b8" }}>×</button>
-        </div>
-        {children}
-      </div>
+  let html = `
+  <div class="summary">
+    <div class="sum-card"><span class="icon">⚠</span><div><div class="label">在庫なし</div><div class="val${zeroCount>0?' warn':''}">${zeroCount} 件</div></div></div>
+    <div class="sum-card"><span class="icon">📦</span><div><div class="label">総在庫数</div><div class="val">${totalQty} 点</div></div></div>
+    <div class="sum-card"><span class="icon">🟢</span><div><div class="label">T管</div><div class="val">${Object.keys(s.tees).length} 種</div></div></div>
+    <div class="sum-card"><span class="icon">🔻</span><div><div class="label">レジューサー</div><div class="val">${Object.keys(s.reducers).length} 種</div></div></div>
+    <div class="sum-card"><span class="icon">💧</span><div><div class="label">ニューホープ</div><div class="val">${Object.keys(s.newhope).length} 種</div></div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab${s.tab==='phi'?' active':''}" onclick="setTab('phi')">Φ別カード</button>
+    <button class="tab${s.tab==='tee'?' active':''}" onclick="setTab('tee')">T管</button>
+    <button class="tab${s.tab==='reducer'?' active':''}" onclick="setTab('reducer')">レジューサー</button>
+    <button class="tab${s.tab==='newhope'?' active':''}" onclick="setTab('newhope')">ニューホープ</button>
+  </div>
+  <div class="filters">
+    <div><label>Φサイズ</label><select onchange="setFilterPhi(this.value)">
+      <option value="all"${s.filterPhi==='all'?' selected':''}>すべて</option>
+      ${PHI.map(p=>`<option value="${p}"${s.filterPhi==p?' selected':''}>Φ${p}</option>`).join('')}
+    </select></div>
+    <div><label>材質</label><select onchange="setFilterMat(this.value)">
+      <option value="all"${s.filterMat==='all'?' selected':''}>すべて</option>
+      ${MATS.map(m=>`<option value="${m.k}"${s.filterMat===m.k?' selected':''}>${m.l}</option>`).join('')}
+    </select></div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#374151;padding-bottom:2px">
+      <input type="checkbox" ${s.showZero?'checked':''} onchange="setShowZero(this.checked)" style="width:15px;height:15px;border:none"> 在庫なしのみ
+    </label>
+    <div class="add-btns">
+      ${(s.tab==='phi'||s.tab==='tee')?'<button class="add-btn" style="background:#15803d" onclick="openModal(\'tee\')">＋ T管</button>':''}
+      ${(s.tab==='phi'||s.tab==='reducer')?'<button class="add-btn" style="background:#7c3aed" onclick="openModal(\'reducer\')">＋ レジューサー</button>':''}
+      ${(s.tab==='phi'||s.tab==='newhope')?'<button class="add-btn" style="background:#0891b2" onclick="openModal(\'newhope\')">＋ ニューホープ</button>':''}
     </div>
-  );
-}
-
-const inp = { width:"100%", padding:"8px 10px", border:"1.5px solid #e2e8f0", borderRadius:"7px", fontSize:"13px", color:"#1e293b", background:"#f8fafc", boxSizing:"border-box" };
-function FL({ label, children }) {
-  return <div style={{ marginBottom:"13px" }}><label style={{ display:"block", fontSize:"11px", fontWeight:700, color:"#64748b", marginBottom:"5px" }}>{label}</label>{children}</div>;
-}
-
-function AdjustModal({ title, item, unit, onApply, onClose }) {
-  const [delta, setDelta] = useState("");
-  const apply = sign => { const d = Number(delta); if (!delta || isNaN(d) || d <= 0) return; onApply(sign * d); };
-  return (
-    <Modal title={title} onClose={onClose}>
-      <p style={{ color:"#64748b", fontSize:"14px", marginTop:0 }}>
-        現在の在庫：<strong style={{ color: item.quantity===0?ZERO_COLOR:"#1e293b", fontSize:"22px" }}>{item.quantity}</strong>
-        <span style={{ fontSize:"13px", color:"#94a3b8", marginLeft:"4px" }}>{unit||"個"}</span>
-      </p>
-      <FL label="数量">
-        <input style={{ ...inp, fontSize:"20px", fontWeight:700, textAlign:"center", padding:"12px" }}
-          type="number" min="1" value={delta} onChange={e => setDelta(e.target.value)} placeholder="0" autoFocus />
-      </FL>
-      <div style={{ display:"flex", gap:"10px" }}>
-        <button onClick={() => apply(1)}  style={{ flex:1, padding:"13px", border:"none", borderRadius:"8px", background:"#16a34a", color:"#fff", fontWeight:800, fontSize:"15px", cursor:"pointer" }}>＋ 入庫</button>
-        <button onClick={() => apply(-1)} style={{ flex:1, padding:"13px", border:"none", borderRadius:"8px", background:"#ea580c", color:"#fff", fontWeight:800, fontSize:"15px", cursor:"pointer" }}>－ 出庫</button>
-      </div>
-      <button onClick={onClose} style={{ width:"100%", marginTop:"10px", padding:"9px", border:"1.5px solid #e2e8f0", borderRadius:"8px", background:"#fff", color:"#94a3b8", fontWeight:600, cursor:"pointer", fontSize:"13px" }}>キャンセル</button>
-    </Modal>
-  );
-}
-
-function TeeForm({ onSave, onClose }) {
-  const [f, setF] = useState({ main:200, body:200, branch:100, mat:"z", quantity:0 });
-  const s = (k,v) => setF(p => ({...p,[k]:v}));
-  return <>
-    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
-      <FL label="片側 Φ"><select style={inp} value={f.main} onChange={e=>s("main",Number(e.target.value))}>{PHI_SIZES.map(p=><option key={p} value={p}>Φ{p}</option>)}</select></FL>
-      <FL label="片側 Φ"><select style={inp} value={f.body} onChange={e=>s("body",Number(e.target.value))}>{PHI_SIZES.map(p=><option key={p} value={p}>Φ{p}</option>)}</select></FL>
-      <FL label="取り出し Φ"><select style={inp} value={f.branch} onChange={e=>s("branch",Number(e.target.value))}>{PHI_SIZES.map(p=><option key={p} value={p}>Φ{p}</option>)}</select></FL>
+    <div class="phi-chips">
+      ${PHI.map(phi=>`<span class="chip${phiZero[phi]>0?' warn':''}${s.filterPhi==phi?' active':''}" onclick="togglePhi(${phi})">Φ${phi}${phiZero[phi]>0?` ✕${phiZero[phi]}`:''}</span>`).join('')}
     </div>
-    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
-      <FL label="材質"><select style={inp} value={f.mat} onChange={e=>s("mat",e.target.value)}>{MATERIALS.map(m=><option key={m.key} value={m.key}>{m.label}</option>)}</select></FL>
-      <FL label="在庫数"><input style={inp} type="number" min="0" value={f.quantity} onChange={e=>s("quantity",Number(e.target.value))} /></FL>
-    </div>
-    <p style={{ fontSize:"12px", color:"#64748b", margin:"4px 0 16px" }}>プレビュー：<strong>{teeLabel(f)}</strong></p>
-    <div style={{ display:"flex", gap:"10px", justifyContent:"flex-end" }}>
-      <button onClick={onClose} style={{ padding:"8px 18px", border:"1.5px solid #e2e8f0", borderRadius:"7px", background:"#fff", color:"#64748b", fontWeight:600, cursor:"pointer", fontSize:"13px" }}>キャンセル</button>
-      <button onClick={()=>onSave(f)} style={{ padding:"8px 22px", border:"none", borderRadius:"7px", background:"#3b82f6", color:"#fff", fontWeight:700, cursor:"pointer", fontSize:"13px" }}>追加</button>
-    </div>
-  </>;
-}
+  </div>`;
 
-function ReducerForm({ onSave, onClose }) {
-  const [f, setF] = useState({ from:200, to:150, mat:"z", quantity:0 });
-  const s = (k,v) => setF(p => ({...p,[k]:v}));
-  return <>
-    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
-      <FL label="大口径（元）Φ"><select style={inp} value={f.from} onChange={e=>s("from",Number(e.target.value))}>{PHI_SIZES.map(p=><option key={p} value={p}>Φ{p}</option>)}</select></FL>
-      <FL label="小口径（先）Φ"><select style={inp} value={f.to} onChange={e=>s("to",Number(e.target.value))}>{PHI_SIZES.map(p=><option key={p} value={p}>Φ{p}</option>)}</select></FL>
-      <FL label="材質"><select style={inp} value={f.mat} onChange={e=>s("mat",e.target.value)}>{MATERIALS.map(m=><option key={m.key} value={m.key}>{m.label}</option>)}</select></FL>
-      <FL label="在庫数"><input style={inp} type="number" min="0" value={f.quantity} onChange={e=>s("quantity",Number(e.target.value))} /></FL>
-    </div>
-    <p style={{ fontSize:"12px", color:"#64748b", margin:"4px 0 16px" }}>プレビュー：<strong>{reducerLabel(f)}</strong></p>
-    <div style={{ display:"flex", gap:"10px", justifyContent:"flex-end" }}>
-      <button onClick={onClose} style={{ padding:"8px 18px", border:"1.5px solid #e2e8f0", borderRadius:"7px", background:"#fff", color:"#64748b", fontWeight:600, cursor:"pointer", fontSize:"13px" }}>キャンセル</button>
-      <button onClick={()=>onSave(f)} style={{ padding:"8px 22px", border:"none", borderRadius:"7px", background:"#3b82f6", color:"#fff", fontWeight:700, cursor:"pointer", fontSize:"13px" }}>追加</button>
-    </div>
-  </>;
-}
-
-function NewhopeForm({ onSave, onClose }) {
-  const [f, setF] = useState({ phi:150, length:1.0, quantity:0 });
-  const s = (k,v) => setF(p => ({...p,[k]:v}));
-  return <>
-    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"10px" }}>
-      <FL label="Φ"><select style={inp} value={f.phi} onChange={e=>s("phi",Number(e.target.value))}>{PHI_SIZES.map(p=><option key={p} value={p}>Φ{p}</option>)}</select></FL>
-      <FL label="長さ（m）"><input style={inp} type="number" min="0.1" step="0.1" value={f.length} onChange={e=>s("length",Number(e.target.value))} /></FL>
-      <FL label="本数"><input style={inp} type="number" min="0" value={f.quantity} onChange={e=>s("quantity",Number(e.target.value))} /></FL>
-    </div>
-    <p style={{ fontSize:"12px", color:"#64748b", margin:"4px 0 16px" }}>プレビュー：<strong>ニューホープ Φ{f.phi} / {f.length}m × {f.quantity}本</strong></p>
-    <div style={{ display:"flex", gap:"10px", justifyContent:"flex-end" }}>
-      <button onClick={onClose} style={{ padding:"8px 18px", border:"1.5px solid #e2e8f0", borderRadius:"7px", background:"#fff", color:"#64748b", fontWeight:600, cursor:"pointer", fontSize:"13px" }}>キャンセル</button>
-      <button onClick={()=>onSave(f)} style={{ padding:"8px 22px", border:"none", borderRadius:"7px", background:"#0891b2", color:"#fff", fontWeight:700, cursor:"pointer", fontSize:"13px" }}>追加</button>
-    </div>
-  </>;
-}
-
-function SectionHeader({ icon, label, color, bg, border }) {
-  return <div style={{ padding:"7px 14px", background:bg, borderBottom:`1px solid ${border}` }}><span style={{ fontWeight:800, fontSize:"12px", color }}>{icon} {label}</span></div>;
-}
-
-function SimpleRow({ row, onAdjust }) {
-  const isEmpty = row.quantity === 0;
-  return (
-    <div style={{ padding:"8px 14px", display:"flex", alignItems:"center", gap:"8px", borderBottom:"1px solid #f1f5f9", background:isEmpty?"#fff8f8":"#fff" }}>
-      <span style={{ fontSize:"13px", color:"#374151", flex:"1 1 140px", minWidth:0 }}>{row.def.name}</span>
-      <span style={{ fontWeight:800, fontSize:"15px", color:isEmpty?ZERO_COLOR:"#1e293b", whiteSpace:"nowrap" }}>{row.quantity} <span style={{ fontSize:"11px", color:"#94a3b8", fontWeight:400 }}>{row.def.unit}</span></span>
-      <ZeroBadge qty={row.quantity} />
-      <button onClick={onAdjust} style={{ padding:"3px 10px", border:"1.5px solid #e2e8f0", borderRadius:"5px", background:"#fff", fontSize:"11px", cursor:"pointer", fontWeight:700, color:"#475569", marginLeft:"auto" }}>入出庫</button>
-    </div>
-  );
-}
-
-function ComboRow({ item, label, onAdjust, onDelete, unit }) {
-  const isEmpty = item.quantity === 0;
-  return (
-    <div style={{ padding:"8px 14px", display:"flex", alignItems:"center", gap:"8px", borderBottom:"1px solid #f1f5f9", background:isEmpty?"#fff8f8":"#fff", flexWrap:"wrap" }}>
-      <span style={{ fontSize:"13px", color:"#374151", flex:"1 1 160px", minWidth:0 }}>{label}</span>
-      <span style={{ fontWeight:800, fontSize:"15px", color:isEmpty?ZERO_COLOR:"#1e293b", whiteSpace:"nowrap" }}>{item.quantity} <span style={{ fontSize:"11px", color:"#94a3b8", fontWeight:400 }}>{unit||"個"}</span></span>
-      <ZeroBadge qty={item.quantity} />
-      <div style={{ display:"flex", gap:"5px", marginLeft:"auto" }}>
-        <button onClick={onAdjust} style={{ padding:"3px 9px", border:"1.5px solid #e2e8f0", borderRadius:"5px", background:"#fff", fontSize:"11px", cursor:"pointer", fontWeight:700, color:"#475569" }}>入出庫</button>
-        <button onClick={onDelete} style={{ padding:"3px 9px", border:"1.5px solid #fecaca", borderRadius:"5px", background:"#fef2f2", fontSize:"11px", cursor:"pointer", fontWeight:700, color:"#dc2626" }}>削除</button>
-      </div>
-    </div>
-  );
-}
-
-function PhiCard({ phi, simpleStock, teeStock, reducerStock, newhopeStock, filterMat, onSimpleAdjust, onTeeAdjust, onTeeDelete, onRedAdjust, onRedDelete, onNhAdjust, onNhDelete }) {
-  const simpleRows = Object.entries(simpleStock)
-    .filter(([,s]) => s.phi === phi)
-    .map(([id,s]) => ({ id, ...s, def: ALL_SIMPLE_DEFS.find(d => d.key === s.itemKey), cat: getSimpleCat(s.itemKey) }))
-    .filter(r => r.def && (filterMat === "all" || r.def.key.endsWith(`_${filterMat}`)));
-  const myTees     = Object.entries(teeStock).filter(([,t]) => t.main === phi && (filterMat==="all"||t.mat===filterMat));
-  const myReducers = Object.entries(reducerStock).filter(([,r]) => r.from === phi && (filterMat==="all"||r.mat===filterMat));
-  const myNh       = Object.entries(newhopeStock).filter(([,n]) => n.phi === phi);
-  const zeroN = [...simpleRows,...myTees.map(([,t])=>t),...myReducers.map(([,r])=>r),...myNh.map(([,n])=>n)].filter(i=>i.quantity===0).length;
-  return (
-    <div style={{ background:"#fff", borderRadius:"12px", overflow:"hidden", boxShadow:"0 1px 4px rgba(0,0,0,0.08)", border:zeroN>0?"2px solid #fca5a5":"2px solid #e2e8f0" }}>
-      <div style={{ padding:"10px 14px", display:"flex", justifyContent:"space-between", alignItems:"center", background:zeroN>0?"#fef2f2":"#f8fafc", borderBottom:"1px solid #e2e8f0" }}>
-        <span style={{ fontWeight:800, fontSize:"16px", color:"#1e293b" }}>Φ{phi}</span>
-        {zeroN>0 && <span style={{ fontSize:"12px", color:ZERO_COLOR, fontWeight:700 }}>在庫なし {zeroN}件</span>}
-      </div>
-      {Object.keys(SIMPLE_TYPES).map(cat => {
-        const catRows = simpleRows.filter(r => r.cat === cat);
-        if (catRows.length === 0) return null;
-        const t = SIMPLE_TYPES[cat];
-        return <div key={cat}><SectionHeader icon={t.icon} label={t.label} color={t.color} bg={t.bg} border={t.border} />{catRows.map(row=><SimpleRow key={row.id} row={row} onAdjust={()=>onSimpleAdjust(row)} />)}</div>;
-      })}
-      <div><SectionHeader icon="🟢" label="T管" color="#15803d" bg="#f0fdf4" border="#bbf7d0" />
-        {myTees.length===0?<p style={{ fontSize:"12px", color:"#94a3b8", padding:"8px 14px", margin:0 }}>登録なし</p>:myTees.map(([id,t])=><ComboRow key={id} item={t} label={teeLabel(t)} onAdjust={()=>onTeeAdjust(id,t)} onDelete={()=>onTeeDelete(id)} />)}
-      </div>
-      <div><SectionHeader icon="🔻" label="レジューサー" color="#7c3aed" bg="#f5f3ff" border="#ddd6fe" />
-        {myReducers.length===0?<p style={{ fontSize:"12px", color:"#94a3b8", padding:"8px 14px", margin:0 }}>登録なし</p>:myReducers.map(([id,r])=><ComboRow key={id} item={r} label={reducerLabel(r)} onAdjust={()=>onRedAdjust(id,r)} onDelete={()=>onRedDelete(id)} />)}
-      </div>
-      <div><SectionHeader icon="💧" label="ニューホープ" color="#0891b2" bg="#ecfeff" border="#a5f3fc" />
-        {myNh.length===0?<p style={{ fontSize:"12px", color:"#94a3b8", padding:"8px 14px", margin:0 }}>登録なし</p>:myNh.map(([id,n])=><ComboRow key={id} item={n} label={`${n.length}m`} unit="本" onAdjust={()=>onNhAdjust(id,n)} onDelete={()=>onNhDelete(id)} />)}
-      </div>
-    </div>
-  );
-}
-
-function App() {
-  const [loading, setLoading] = useState(false);
-  const [simple,   setSimple]   = useState(buildInitialSimple());
-  const [tees,     setTees]     = useState({});
-  const [reducers, setReducers] = useState({});
-  const [newhope,  setNewhope]  = useState({});
-  const [tab,          setTab]          = useState("phi");
-  const [filterPhi,    setFilterPhi]    = useState("all");
-  const [filterMat,    setFilterMat]    = useState("all");
-  const [showZeroOnly, setShowZeroOnly] = useState(false);
-  const [adjustTarget, setAdjustTarget] = useState(null);
-  const [addModal,     setAddModal]     = useState(null);
-
-  useEffect(() => {
-    // 5秒でタイムアウト（Firebaseに繋がらなくてもアプリを表示）
-    const timer = setTimeout(() => {
-      setSimple(buildInitialSimple());
-      setLoading(false);
-    }, 5000);
-
-    try {
-      window.dbListen("simple", val => {
-        clearTimeout(timer);
-        if (val) {
-          setSimple(val);
-        } else {
-          const initial = buildInitialSimple();
-          window.dbSet("simple", initial);
-          setSimple(initial);
-        }
-        setLoading(false);
+  if(s.tab==='phi'){
+    const phis = s.filterPhi==='all'?PHI:[Number(s.filterPhi)];
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">';
+    phis.forEach(phi=>{
+      const simRows = Object.entries(s.simple)
+        .filter(([,v])=>v.phi===phi)
+        .map(([id,v])=>({id,...v,def:getItemDef(v.itemKey),cat:getCat(v.itemKey)}))
+        .filter(r=>r.def&&(s.filterMat==='all'||r.def.k.endsWith('_'+s.filterMat)));
+      const myTees = Object.entries(s.tees).filter(([,t])=>t.main===phi&&(s.filterMat==='all'||t.mat===s.filterMat));
+      const myReds = Object.entries(s.reducers).filter(([,r])=>r.from===phi&&(s.filterMat==='all'||r.mat===s.filterMat));
+      const myNh   = Object.entries(s.newhope).filter(([,n])=>n.phi===phi);
+      if(s.showZero){
+        const hasZero = [...simRows,...myTees.map(([,t])=>t),...myReds.map(([,r])=>r),...myNh.map(([,n])=>n)].some(i=>i.quantity===0);
+        if(!hasZero) return;
+      }
+      const zeroN = [...simRows,...myTees.map(([,t])=>t),...myReds.map(([,r])=>r),...myNh.map(([,n])=>n)].filter(i=>i.quantity===0).length;
+      html += `<div class="card${zeroN>0?' alert':''}">
+        <div class="card-head${zeroN>0?' alert':''}">
+          <span class="phi">Φ${phi}</span>
+          ${zeroN>0?`<span class="warn">在庫なし ${zeroN}件</span>`:''}
+        </div>`;
+      Object.entries(CATS).forEach(([catKey,cat])=>{
+        const rows = simRows.filter(r=>r.cat===catKey);
+        if(!rows.length) return;
+        html += `<div class="sec-head" style="background:${cat.bg};color:${cat.color};border-bottom:1px solid ${cat.border}">${cat.icon} ${cat.label}</div>`;
+        rows.forEach(row=>{
+          const z=row.quantity===0;
+          html += `<div class="row${z?' zero':''}">
+            <span class="name">${row.def.n}</span>
+            <span class="qty${z?' zero':''}">${row.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">${row.def.u}</span></span>
+            ${z?'<span class="badge">在庫なし</span>':''}
+            <button class="btn" onclick="openAdj('simple','${row.id}',${row.quantity},'${row.def.n}','${row.def.u}')">入出庫</button>
+          </div>`;
+        });
       });
-      window.dbListen("tees",     val => setTees(val||{}));
-      window.dbListen("reducers", val => setReducers(val||{}));
-      window.dbListen("newhope",  val => setNewhope(val||{}));
-    } catch(e) {
-      clearTimeout(timer);
-      setSimple(buildInitialSimple());
-      setLoading(false);
-    }
-  }, []);
+      // T管
+      html += `<div class="sec-head" style="background:#f0fdf4;color:#15803d;border-bottom:1px solid #bbf7d0">🟢 T管</div>`;
+      if(!myTees.length) html += `<div class="row"><span style="font-size:12px;color:#94a3b8">登録なし</span></div>`;
+      myTees.forEach(([id,t])=>{ const z=t.quantity===0;
+        html += `<div class="row${z?' zero':''}"><span class="name">${teeLabel(t)}</span><span class="qty${z?' zero':''}">${t.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('tee','${id}',${t.quantity},'${teeLabel(t)}','個')">入出庫</button><button class="btn del" onclick="dbRemove('tees/${id}')">削除</button></div>`;
+      });
+      // レジューサー
+      html += `<div class="sec-head" style="background:#f5f3ff;color:#7c3aed;border-bottom:1px solid #ddd6fe">🔻 レジューサー</div>`;
+      if(!myReds.length) html += `<div class="row"><span style="font-size:12px;color:#94a3b8">登録なし</span></div>`;
+      myReds.forEach(([id,r])=>{ const z=r.quantity===0;
+        html += `<div class="row${z?' zero':''}"><span class="name">${redLabel(r)}</span><span class="qty${z?' zero':''}">${r.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('reducer','${id}',${r.quantity},'${redLabel(r)}','個')">入出庫</button><button class="btn del" onclick="dbRemove('reducers/${id}')">削除</button></div>`;
+      });
+      // ニューホープ
+      html += `<div class="sec-head" style="background:#ecfeff;color:#0891b2;border-bottom:1px solid #a5f3fc">💧 ニューホープ</div>`;
+      if(!myNh.length) html += `<div class="row"><span style="font-size:12px;color:#94a3b8">登録なし</span></div>`;
+      myNh.forEach(([id,n])=>{ const z=n.quantity===0;
+        html += `<div class="row${z?' zero':''}"><span class="name">${n.length}m</span><span class="qty${z?' zero':''}">${n.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">本</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('newhope','${id}',${n.quantity},'${nhLabel(n)}','本')">入出庫</button><button class="btn del" onclick="dbRemove('newhope/${id}')">削除</button></div>`;
+      });
+      html += `</div>`;
+    });
+    html += '</div>';
+  }
 
-  const today = new Date().toISOString().slice(0,10);
-
-  const applyAdjust = (signed) => {
-    if (!adjustTarget) return;
-    const { type, id, item } = adjustTarget;
-    const newQty = Math.max(0, item.quantity + signed);
-    const basePath = type==="simple"?`simple/${id}`:type==="tee"?`tees/${id}`:type==="reducer"?`reducers/${id}`:`newhope/${id}`;
-    window.dbSet(`${basePath}/quantity`, newQty);
-    window.dbSet(`${basePath}/updatedAt`, today);
-    setAdjustTarget(null);
-  };
-
-  const addTee     = f => { window.dbPush("tees",     {...f, updatedAt:today}); setAddModal(null); };
-  const addReducer = f => { window.dbPush("reducers", {...f, updatedAt:today}); setAddModal(null); };
-  const addNewhope = f => { window.dbPush("newhope",  {...f, updatedAt:today}); setAddModal(null); };
-
-  const allItems = [...Object.values(simple),...Object.values(tees),...Object.values(reducers),...Object.values(newhope)];
-  const zeroCount = allItems.filter(i=>i.quantity===0).length;
-  const totalQty  = allItems.reduce((a,i)=>a+i.quantity,0);
-
-  const phiSummary = useMemo(() => PHI_SIZES.map(phi => {
-    const zN =
-      Object.values(simple).filter(s=>s.phi===phi&&s.quantity===0).length +
-      Object.values(tees).filter(t=>t.main===phi&&t.quantity===0).length +
-      Object.values(reducers).filter(r=>r.from===phi&&r.quantity===0).length +
-      Object.values(newhope).filter(n=>n.phi===phi&&n.quantity===0).length;
-    return {phi,zN};
-  }), [simple,tees,reducers,newhope]);
-
-  const filteredPhis = filterPhi==="all"?PHI_SIZES:[Number(filterPhi)];
-
-  const teeRows = useMemo(() => Object.entries(tees).filter(([,t]) => {
-    if (filterPhi!=="all"&&t.main!==Number(filterPhi)) return false;
-    if (filterMat!=="all"&&t.mat!==filterMat) return false;
-    if (showZeroOnly&&t.quantity>0) return false;
-    return true;
-  }), [tees,filterPhi,filterMat,showZeroOnly]);
-
-  const redRows = useMemo(() => Object.entries(reducers).filter(([,r]) => {
-    if (filterPhi!=="all"&&r.from!==Number(filterPhi)) return false;
-    if (filterMat!=="all"&&r.mat!==filterMat) return false;
-    if (showZeroOnly&&r.quantity>0) return false;
-    return true;
-  }), [reducers,filterPhi,filterMat,showZeroOnly]);
-
-  const nhRows = useMemo(() => Object.entries(newhope)
-    .filter(([,n]) => {
-      if (filterPhi!=="all"&&n.phi!==Number(filterPhi)) return false;
-      if (showZeroOnly&&n.quantity>0) return false;
+  if(s.tab==='tee'){
+    const rows = Object.entries(s.tees).filter(([,t])=>{
+      if(s.filterPhi!=='all'&&t.main!==Number(s.filterPhi))return false;
+      if(s.filterMat!=='all'&&t.mat!==s.filterMat)return false;
+      if(s.showZero&&t.quantity>0)return false;
       return true;
-    }).sort((a,b)=>a[1].phi-b[1].phi||a[1].length-b[1].length),
-  [newhope,filterPhi,showZeroOnly]);
+    });
+    html += `<div style="overflow:auto"><table><thead style="background:#f0fdf4"><tr>
+      <th style="color:#15803d">片側Φ</th><th style="color:#15803d">片側Φ</th><th style="color:#15803d">取り出しΦ</th>
+      <th style="color:#15803d">材質</th><th style="color:#15803d">在庫</th><th style="color:#15803d">状態</th><th style="color:#15803d">操作</th>
+    </tr></thead><tbody>`;
+    if(!rows.length) html += `<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8">該当なし</td></tr>`;
+    rows.forEach(([id,t])=>{ const z=t.quantity===0;
+      html += `<tr style="${z?'background:#fff8f8':''}">
+        <td style="font-weight:800">Φ${t.main}</td>
+        <td style="font-weight:700;color:${t.body!==t.main?'#ea580c':'#94a3b8'}">Φ${t.body}</td>
+        <td style="font-weight:700">Φ${t.branch}</td>
+        <td>${matLabel(t.mat)}</td>
+        <td style="font-weight:800;color:${z?'#dc2626':'#1e293b'}">${t.quantity}</td>
+        <td>${z?'<span class="badge">在庫なし</span>':''}</td>
+        <td><button class="btn" onclick="openAdj('tee','${id}',${t.quantity},'${teeLabel(t)}','個')">入出庫</button><button class="btn del" onclick="dbRemove('tees/${id}')">削除</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
 
-  const btnStyle = active => ({ padding:"6px 12px", border:"none", borderRadius:"6px", fontSize:"12px", fontWeight:700, cursor:"pointer", background:active?"#3b82f6":"#334155", color:active?"#fff":"#94a3b8" });
-  const tableHead = (cols,color,bg,border) => <thead><tr style={{ background:bg, borderBottom:`2px solid ${border}` }}>{cols.map(h=><th key={h} style={{ padding:"11px 12px", textAlign:"left", fontSize:"11px", fontWeight:700, color, whiteSpace:"nowrap" }}>{h}</th>)}</tr></thead>;
-  const adjBtn = onClick => <button onClick={onClick} style={{ padding:"3px 9px", border:"1.5px solid #e2e8f0", borderRadius:"5px", background:"#fff", fontSize:"11px", cursor:"pointer", fontWeight:700, color:"#475569" }}>入出庫</button>;
-  const delBtn = onClick => <button onClick={onClick} style={{ padding:"3px 9px", border:"1.5px solid #fecaca", borderRadius:"5px", background:"#fef2f2", fontSize:"11px", cursor:"pointer", fontWeight:700, color:"#dc2626" }}>削除</button>;
+  if(s.tab==='reducer'){
+    const rows = Object.entries(s.reducers).filter(([,r])=>{
+      if(s.filterPhi!=='all'&&r.from!==Number(s.filterPhi))return false;
+      if(s.filterMat!=='all'&&r.mat!==s.filterMat)return false;
+      if(s.showZero&&r.quantity>0)return false;
+      return true;
+    });
+    html += `<div style="overflow:auto"><table><thead style="background:#f5f3ff"><tr>
+      <th style="color:#7c3aed">大口径Φ</th><th style="color:#7c3aed">小口径Φ</th><th style="color:#7c3aed">材質</th>
+      <th style="color:#7c3aed">在庫</th><th style="color:#7c3aed">状態</th><th style="color:#7c3aed">操作</th>
+    </tr></thead><tbody>`;
+    if(!rows.length) html += `<tr><td colspan="6" style="text-align:center;padding:40px;color:#94a3b8">該当なし</td></tr>`;
+    rows.forEach(([id,r])=>{ const z=r.quantity===0;
+      html += `<tr style="${z?'background:#fff8f8':''}">
+        <td style="font-weight:800">Φ${r.from}</td><td style="font-weight:700">Φ${r.to}</td>
+        <td>${matLabel(r.mat)}</td>
+        <td style="font-weight:800;color:${z?'#dc2626':'#1e293b'}">${r.quantity}</td>
+        <td>${z?'<span class="badge">在庫なし</span>':''}</td>
+        <td><button class="btn" onclick="openAdj('reducer','${id}',${r.quantity},'${redLabel(r)}','個')">入出庫</button><button class="btn del" onclick="dbRemove('reducers/${id}')">削除</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
 
-  if (loading) return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", flexDirection:"column", gap:"16px", color:"#64748b" }}>
-      <div style={{ fontSize:"40px" }}>🌀</div>
-      <div style={{ fontSize:"16px", fontWeight:700 }}>データを読み込み中...</div>
-    </div>
-  );
+  if(s.tab==='newhope'){
+    const rows = Object.entries(s.newhope).filter(([,n])=>{
+      if(s.filterPhi!=='all'&&n.phi!==Number(s.filterPhi))return false;
+      if(s.showZero&&n.quantity>0)return false;
+      return true;
+    }).sort((a,b)=>a[1].phi-b[1].phi||a[1].length-b[1].length);
+    html += `<div style="overflow:auto"><table><thead style="background:#ecfeff"><tr>
+      <th style="color:#0891b2">Φ</th><th style="color:#0891b2">長さ</th><th style="color:#0891b2">本数</th>
+      <th style="color:#0891b2">状態</th><th style="color:#0891b2">操作</th>
+    </tr></thead><tbody>`;
+    if(!rows.length) html += `<tr><td colspan="5" style="text-align:center;padding:40px;color:#94a3b8">該当なし</td></tr>`;
+    rows.forEach(([id,n])=>{ const z=n.quantity===0;
+      html += `<tr style="${z?'background:#fff8f8':''}">
+        <td style="font-weight:800">Φ${n.phi}</td><td style="font-weight:700;color:#0891b2">${n.length}m</td>
+        <td style="font-weight:800;color:${z?'#dc2626':'#1e293b'}">${n.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">本</span></td>
+        <td>${z?'<span class="badge">在庫なし</span>':''}</td>
+        <td><button class="btn" onclick="openAdj('newhope','${id}',${n.quantity},'${nhLabel(n)}','本')">入出庫</button><button class="btn del" onclick="dbRemove('newhope/${id}')">削除</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
 
-  return (
-    <div style={{ minHeight:"100vh", background:"#f1f5f9" }}>
-      <div style={{ background:"#1e293b", color:"#fff", padding:"0 16px", display:"flex", alignItems:"center", justifyContent:"space-between", height:"54px", boxShadow:"0 2px 8px rgba(0,0,0,0.3)", flexWrap:"wrap", gap:"6px" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-          <span style={{ fontSize:"20px" }}>🌀</span>
-          <span style={{ fontWeight:800, fontSize:"15px" }}>ダクト在庫管理</span>
+  // モーダル
+  if(s.modal){
+    const m = s.modal;
+    if(m.type==='adj'){
+      html += `<div class="modal-bg" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
+        <h2>入出庫 — ${m.label}</h2>
+        <p style="color:#64748b;font-size:14px">現在の在庫：<strong style="font-size:22px;color:${m.qty===0?'#dc2626':'#1e293b'}">${m.qty}</strong> ${m.unit}</p>
+        <label>数量</label>
+        <input class="adj-in" type="number" min="1" id="adj-delta" placeholder="0">
+        <div class="adj-row">
+          <button class="btn-in" style="background:#16a34a" onclick="applyAdj(1)">＋ 入庫</button>
+          <button class="btn-in" style="background:#ea580c" onclick="applyAdj(-1)">－ 出庫</button>
         </div>
-        <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" }}>
-          <button style={btnStyle(tab==="phi")}     onClick={()=>setTab("phi")}>Φ別カード</button>
-          <button style={btnStyle(tab==="tee")}     onClick={()=>setTab("tee")}>T管</button>
-          <button style={btnStyle(tab==="reducer")} onClick={()=>setTab("reducer")}>レジューサー</button>
-          <button style={btnStyle(tab==="newhope")} onClick={()=>setTab("newhope")}>ニューホープ</button>
+        <div class="row-btn"><button class="cancel" onclick="closeModal()">キャンセル</button></div>
+      </div></div>`;
+    }
+    if(m.type==='tee'){
+      html += `<div class="modal-bg" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
+        <h2>T管を追加</h2>
+        <div class="grid3">
+          <div><label>片側 Φ</label><select id="t-main">${PHI.map(p=>`<option value="${p}"${p===200?' selected':''}>`+'Φ'+p+'</option>').join('')}</select></div>
+          <div><label>片側 Φ</label><select id="t-body">${PHI.map(p=>`<option value="${p}"${p===200?' selected':''}>`+'Φ'+p+'</option>').join('')}</select></div>
+          <div><label>取り出し Φ</label><select id="t-branch">${PHI.map(p=>`<option value="${p}"${p===100?' selected':''}>`+'Φ'+p+'</option>').join('')}</select></div>
         </div>
-      </div>
-
-      <div style={{ maxWidth:"1200px", margin:"0 auto", padding:"20px 14px" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:"10px", marginBottom:"18px" }}>
-          {[
-            { label:"在庫なし", value:`${zeroCount} 件`, icon:"⚠", color:zeroCount>0?ZERO_COLOR:undefined },
-            { label:"総在庫数", value:`${totalQty.toLocaleString()} 点`, icon:"📦" },
-            { label:"T管",      value:`${Object.keys(tees).length} 種`, icon:"🟢" },
-            { label:"レジューサー", value:`${Object.keys(reducers).length} 種`, icon:"🔻" },
-            { label:"ニューホープ", value:`${Object.keys(newhope).length} 種`, icon:"💧" },
-          ].map(c=>(
-            <div key={c.label} style={{ background:"#fff", borderRadius:"10px", padding:"12px 14px", boxShadow:"0 1px 3px rgba(0,0,0,0.07)", display:"flex", alignItems:"center", gap:"10px" }}>
-              <span style={{ fontSize:"22px" }}>{c.icon}</span>
-              <div><div style={{ fontSize:"10px", color:"#94a3b8", fontWeight:600 }}>{c.label}</div><div style={{ fontSize:"18px", fontWeight:800, color:c.color||"#1e293b" }}>{c.value}</div></div>
-            </div>
-          ))}
+        <div class="grid2">
+          <div><label>材質</label><select id="t-mat">${MATS.map(m=>`<option value="${m.k}">${m.l}</option>`).join('')}</select></div>
+          <div><label>在庫数</label><input type="number" id="t-qty" value="0" min="0"></div>
         </div>
-
-        <div style={{ background:"#fff", borderRadius:"10px", padding:"12px 16px", marginBottom:"16px", boxShadow:"0 1px 3px rgba(0,0,0,0.07)", display:"flex", flexWrap:"wrap", gap:"10px", alignItems:"flex-end" }}>
-          <div>
-            <label style={{ fontSize:"11px", fontWeight:700, color:"#64748b", display:"block", marginBottom:"4px" }}>Φサイズ</label>
-            <select value={filterPhi} onChange={e=>setFilterPhi(e.target.value)} style={{ ...inp, width:"110px" }}>
-              <option value="all">すべて</option>
-              {PHI_SIZES.map(p=><option key={p} value={p}>Φ{p}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={{ fontSize:"11px", fontWeight:700, color:"#64748b", display:"block", marginBottom:"4px" }}>材質</label>
-            <select value={filterMat} onChange={e=>setFilterMat(e.target.value)} style={{ ...inp, width:"100px" }}>
-              <option value="all">すべて</option>
-              {MATERIALS.map(m=><option key={m.key} value={m.key}>{m.label}</option>)}
-            </select>
-          </div>
-          <label style={{ display:"flex", alignItems:"center", gap:"6px", fontSize:"13px", color:"#374151", cursor:"pointer", fontWeight:600, paddingBottom:"2px" }}>
-            <input type="checkbox" checked={showZeroOnly} onChange={e=>setShowZeroOnly(e.target.checked)} style={{ width:"15px", height:"15px" }} />
-            在庫なしのみ
-          </label>
-          <div style={{ marginLeft:"auto", display:"flex", gap:"6px", flexWrap:"wrap" }}>
-            {(tab==="phi"||tab==="tee")      && <button onClick={()=>setAddModal("tee")}     style={{ padding:"7px 14px", border:"none", borderRadius:"7px", background:"#15803d", color:"#fff", fontWeight:700, fontSize:"12px", cursor:"pointer" }}>＋ T管</button>}
-            {(tab==="phi"||tab==="reducer")  && <button onClick={()=>setAddModal("reducer")} style={{ padding:"7px 14px", border:"none", borderRadius:"7px", background:"#7c3aed", color:"#fff", fontWeight:700, fontSize:"12px", cursor:"pointer" }}>＋ レジューサー</button>}
-            {(tab==="phi"||tab==="newhope")  && <button onClick={()=>setAddModal("newhope")} style={{ padding:"7px 14px", border:"none", borderRadius:"7px", background:"#0891b2", color:"#fff", fontWeight:700, fontSize:"12px", cursor:"pointer" }}>＋ ニューホープ</button>}
-          </div>
-          <div style={{ width:"100%", display:"flex", flexWrap:"wrap", gap:"4px" }}>
-            {phiSummary.map(({phi,zN})=>(
-              <span key={phi} onClick={()=>setFilterPhi(prev=>prev===String(phi)?"all":String(phi))} style={{
-                padding:"3px 10px", borderRadius:"14px", fontSize:"11px", fontWeight:700, cursor:"pointer",
-                background:filterPhi===String(phi)?"#1e293b":zN>0?"#fee2e2":"#f1f5f9",
-                color:filterPhi===String(phi)?"#fff":zN>0?ZERO_COLOR:"#94a3b8",
-                border:`1px solid ${filterPhi===String(phi)?"#1e293b":zN>0?"#fca5a5":"#e2e8f0"}`,
-              }}>Φ{phi}{zN>0?` ✕${zN}`:""}</span>
-            ))}
-          </div>
+        <div class="row-btn">
+          <button class="cancel" onclick="closeModal()">キャンセル</button>
+          <button class="save" onclick="saveTee()">追加</button>
         </div>
-
-        {tab==="phi" && (
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:"14px" }}>
-            {filteredPhis.map(phi=>(
-              <PhiCard key={phi} phi={phi}
-                simpleStock={simple} teeStock={tees} reducerStock={reducers} newhopeStock={newhope}
-                filterMat={filterMat}
-                onSimpleAdjust={row=>setAdjustTarget({type:"simple",id:row.id,item:row,label:`Φ${row.phi} ${row.def.name}`,unit:row.def.unit})}
-                onTeeAdjust={(id,t)=>setAdjustTarget({type:"tee",id,item:t,label:teeLabel(t)})}
-                onTeeDelete={id=>window.dbRemove(`tees/${id}`)}
-                onRedAdjust={(id,r)=>setAdjustTarget({type:"reducer",id,item:r,label:reducerLabel(r)})}
-                onRedDelete={id=>window.dbRemove(`reducers/${id}`)}
-                onNhAdjust={(id,n)=>setAdjustTarget({type:"newhope",id,item:n,label:nhLabel(n),unit:"本"})}
-                onNhDelete={id=>window.dbRemove(`newhope/${id}`)}
-              />
-            ))}
-          </div>
-        )}
-
-        {tab==="tee" && (
-          <div style={{ background:"#fff", borderRadius:"12px", boxShadow:"0 1px 4px rgba(0,0,0,0.07)", overflow:"auto" }}>
-            <table style={{ width:"100%", borderCollapse:"collapse", minWidth:"480px" }}>
-              {tableHead(["片側Φ","片側Φ","取り出しΦ","材質","在庫","状態","操作"],"#15803d","#f0fdf4","#bbf7d0")}
-              <tbody>
-                {teeRows.length===0?<tr><td colSpan={7} style={{ textAlign:"center", padding:"40px", color:"#94a3b8" }}>該当なし</td></tr>
-                  :teeRows.map(([id,t],i)=>(
-                  <tr key={id} style={{ borderBottom:"1px solid #f1f5f9", background:t.quantity===0?"#fff8f8":i%2===0?"#fff":"#f9fafb" }}>
-                    <td style={{ padding:"10px 12px", fontWeight:800, color:"#1e293b" }}>Φ{t.main}</td>
-                    <td style={{ padding:"10px 12px", fontWeight:700, color:t.body!==t.main?"#ea580c":"#94a3b8" }}>Φ{t.body}</td>
-                    <td style={{ padding:"10px 12px", fontWeight:700, color:"#374151" }}>Φ{t.branch}</td>
-                    <td style={{ padding:"10px 12px", fontSize:"13px", color:"#64748b" }}>{MATERIALS.find(m=>m.key===t.mat)?.label}</td>
-                    <td style={{ padding:"10px 12px", fontWeight:800, color:t.quantity===0?ZERO_COLOR:"#1e293b", fontSize:"15px" }}>{t.quantity}</td>
-                    <td style={{ padding:"10px 12px" }}><ZeroBadge qty={t.quantity} /></td>
-                    <td style={{ padding:"10px 12px" }}><div style={{ display:"flex", gap:"5px" }}>{adjBtn(()=>setAdjustTarget({type:"tee",id,item:t,label:teeLabel(t)}))}{delBtn(()=>window.dbRemove(`tees/${id}`))}</div></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {tab==="reducer" && (
-          <div style={{ background:"#fff", borderRadius:"12px", boxShadow:"0 1px 4px rgba(0,0,0,0.07)", overflow:"auto" }}>
-            <table style={{ width:"100%", borderCollapse:"collapse", minWidth:"480px" }}>
-              {tableHead(["大口径Φ（元）","小口径Φ（先）","材質","在庫","状態","操作"],"#7c3aed","#f5f3ff","#ddd6fe")}
-              <tbody>
-                {redRows.length===0?<tr><td colSpan={6} style={{ textAlign:"center", padding:"40px", color:"#94a3b8" }}>該当なし</td></tr>
-                  :redRows.map(([id,r],i)=>(
-                  <tr key={id} style={{ borderBottom:"1px solid #f1f5f9", background:r.quantity===0?"#fff8f8":i%2===0?"#fff":"#f9fafb" }}>
-                    <td style={{ padding:"10px 12px", fontWeight:800, color:"#1e293b" }}>Φ{r.from}</td>
-                    <td style={{ padding:"10px 12px", fontWeight:700, color:"#374151" }}>Φ{r.to}</td>
-                    <td style={{ padding:"10px 12px", fontSize:"13px", color:"#64748b" }}>{MATERIALS.find(m=>m.key===r.mat)?.label}</td>
-                    <td style={{ padding:"10px 12px", fontWeight:800, color:r.quantity===0?ZERO_COLOR:"#1e293b", fontSize:"15px" }}>{r.quantity}</td>
-                    <td style={{ padding:"10px 12px" }}><ZeroBadge qty={r.quantity} /></td>
-                    <td style={{ padding:"10px 12px" }}><div style={{ display:"flex", gap:"5px" }}>{adjBtn(()=>setAdjustTarget({type:"reducer",id,item:r,label:reducerLabel(r)}))}{delBtn(()=>window.dbRemove(`reducers/${id}`))}</div></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {tab==="newhope" && (
-          <div style={{ background:"#fff", borderRadius:"12px", boxShadow:"0 1px 4px rgba(0,0,0,0.07)", overflow:"auto" }}>
-            <table style={{ width:"100%", borderCollapse:"collapse", minWidth:"400px" }}>
-              {tableHead(["Φ","長さ","本数","状態","操作"],"#0891b2","#ecfeff","#a5f3fc")}
-              <tbody>
-                {nhRows.length===0?<tr><td colSpan={5} style={{ textAlign:"center", padding:"40px", color:"#94a3b8" }}>該当なし</td></tr>
-                  :nhRows.map(([id,n],i)=>(
-                  <tr key={id} style={{ borderBottom:"1px solid #f1f5f9", background:n.quantity===0?"#fff8f8":i%2===0?"#fff":"#f9fafb" }}>
-                    <td style={{ padding:"10px 12px", fontWeight:800, color:"#1e293b" }}>Φ{n.phi}</td>
-                    <td style={{ padding:"10px 12px", fontWeight:700, color:"#0891b2" }}>{n.length}m</td>
-                    <td style={{ padding:"10px 12px", fontWeight:800, color:n.quantity===0?ZERO_COLOR:"#1e293b", fontSize:"15px" }}>{n.quantity} <span style={{ fontSize:"11px", color:"#94a3b8", fontWeight:400 }}>本</span></td>
-                    <td style={{ padding:"10px 12px" }}><ZeroBadge qty={n.quantity} /></td>
-                    <td style={{ padding:"10px 12px" }}><div style={{ display:"flex", gap:"5px" }}>{adjBtn(()=>setAdjustTarget({type:"newhope",id,item:n,label:nhLabel(n),unit:"本"}))}{delBtn(()=>window.dbRemove(`newhope/${id}`))}</div></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        <div style={{ marginTop:"10px", fontSize:"12px", color:"#94a3b8", textAlign:"right" }}>
-          {tab==="tee"?`${teeRows.length} 件`:tab==="reducer"?`${redRows.length} 件`:tab==="newhope"?`${nhRows.length} 件`:`Φ${filteredPhis.length}サイズ表示`}
+      </div></div>`;
+    }
+    if(m.type==='reducer'){
+      html += `<div class="modal-bg" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
+        <h2>レジューサーを追加</h2>
+        <div class="grid2">
+          <div><label>大口径（元）Φ</label><select id="r-from">${PHI.map(p=>`<option value="${p}"${p===200?' selected':''}>`+'Φ'+p+'</option>').join('')}</select></div>
+          <div><label>小口径（先）Φ</label><select id="r-to">${PHI.map(p=>`<option value="${p}"${p===150?' selected':''}>`+'Φ'+p+'</option>').join('')}</select></div>
+          <div><label>材質</label><select id="r-mat">${MATS.map(m=>`<option value="${m.k}">${m.l}</option>`).join('')}</select></div>
+          <div><label>在庫数</label><input type="number" id="r-qty" value="0" min="0"></div>
         </div>
-      </div>
+        <div class="row-btn">
+          <button class="cancel" onclick="closeModal()">キャンセル</button>
+          <button class="save" onclick="saveReducer()">追加</button>
+        </div>
+      </div></div>`;
+    }
+    if(m.type==='newhope'){
+      html += `<div class="modal-bg" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
+        <h2>ニューホープを追加</h2>
+        <div class="grid3">
+          <div><label>Φ</label><select id="n-phi">${PHI.map(p=>`<option value="${p}"${p===150?' selected':''}>`+'Φ'+p+'</option>').join('')}</select></div>
+          <div><label>長さ（m）</label><input type="number" id="n-len" value="1.0" min="0.1" step="0.1"></div>
+          <div><label>本数</label><input type="number" id="n-qty" value="0" min="0"></div>
+        </div>
+        <div class="row-btn">
+          <button class="cancel" onclick="closeModal()">キャンセル</button>
+          <button class="save" onclick="saveNewhope()">追加</button>
+        </div>
+      </div></div>`;
+    }
+  }
 
-      {adjustTarget && <AdjustModal title={`入出庫 — ${adjustTarget.label}`} item={adjustTarget.item} unit={adjustTarget.unit} onApply={applyAdjust} onClose={()=>setAdjustTarget(null)} />}
-      {addModal==="tee"     && <Modal title="T管を追加"         onClose={()=>setAddModal(null)}><TeeForm      onSave={addTee}     onClose={()=>setAddModal(null)} /></Modal>}
-      {addModal==="reducer" && <Modal title="レジューサーを追加" onClose={()=>setAddModal(null)}><ReducerForm  onSave={addReducer} onClose={()=>setAddModal(null)} /></Modal>}
-      {addModal==="newhope" && <Modal title="ニューホープを追加" onClose={()=>setAddModal(null)}><NewhopeForm  onSave={addNewhope} onClose={()=>setAddModal(null)} /></Modal>}
-    </div>
-  );
+  app.innerHTML = html;
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+// アクション
+function setTab(t){ state.tab=t; render(); }
+function setFilterPhi(v){ state.filterPhi=v; render(); }
+function setFilterMat(v){ state.filterMat=v; render(); }
+function setShowZero(v){ state.showZero=v; render(); }
+function togglePhi(p){ state.filterPhi=state.filterPhi==p?'all':String(p); render(); }
+function openModal(t){ state.modal={type:t}; render(); }
+function closeModal(){ state.modal=null; render(); }
+
+function openAdj(type,id,qty,label,unit){
+  state.modal={type:'adj',dataType:type,id,qty,label,unit};
+  render();
+}
+function applyAdj(sign){
+  const d=Number(document.getElementById('adj-delta').value);
+  if(!d||d<=0)return;
+  const m=state.modal;
+  const newQty=Math.max(0,m.qty+sign*d);
+  const today=new Date().toISOString().slice(0,10);
+  const base=m.dataType==='simple'?'simple':m.dataType==='tee'?'tees':m.dataType==='reducer'?'reducers':'newhope';
+  dbSet(`${base}/${m.id}/quantity`,newQty);
+  dbSet(`${base}/${m.id}/updatedAt`,today);
+  closeModal();
+}
+
+function saveTee(){
+  const today=new Date().toISOString().slice(0,10);
+  dbPush('tees',{
+    main:Number(document.getElementById('t-main').value),
+    body:Number(document.getElementById('t-body').value),
+    branch:Number(document.getElementById('t-branch').value),
+    mat:document.getElementById('t-mat').value,
+    quantity:Number(document.getElementById('t-qty').value),
+    updatedAt:today
+  });
+  closeModal();
+}
+function saveReducer(){
+  const today=new Date().toISOString().slice(0,10);
+  dbPush('reducers',{
+    from:Number(document.getElementById('r-from').value),
+    to:Number(document.getElementById('r-to').value),
+    mat:document.getElementById('r-mat').value,
+    quantity:Number(document.getElementById('r-qty').value),
+    updatedAt:today
+  });
+  closeModal();
+}
+function saveNewhope(){
+  const today=new Date().toISOString().slice(0,10);
+  dbPush('newhope',{
+    phi:Number(document.getElementById('n-phi').value),
+    length:Number(document.getElementById('n-len').value),
+    quantity:Number(document.getElementById('n-qty').value),
+    updatedAt:today
+  });
+  closeModal();
+}
+
+// Firebase リスナー
+db.ref('simple').on('value',snap=>{
+  const val=snap.val();
+  if(val){ state.simple=val; }
+  else { const init=buildInitialSimple(); db.ref('simple').set(init); state.simple=init; }
+  render();
+});
+db.ref('tees').on('value',snap=>{ state.tees=snap.val()||{}; render(); });
+db.ref('reducers').on('value',snap=>{ state.reducers=snap.val()||{}; render(); });
+db.ref('newhope').on('value',snap=>{ state.newhope=snap.val()||{}; render(); });
 </script>
 </body>
 </html>
