@@ -142,7 +142,7 @@ function getItemDef(k){ return ALL_ITEMS.find(i=>i.k===k); }
 function getCat(k){ return Object.entries(CATS).find(([,c])=>c.items.find(i=>i.k===k))?.[0]; }
 function matLabel(k){ return MATS.find(m=>m.k===k)?.l||k; }
 function teeLabel(t){ const m=matLabel(t.mat); return t.main+'T'+t.body+'の'+t.branch+'取り出し（'+m+'）'; }
-function redLabel(r){ return `Φ${r.from}→${r.to}（${matLabel(r.mat)}）`; }
+function redLabel(r){ return 'Φ'+r.from+'→'+r.to+'（'+matLabel(r.mat)+'）'; }
 function nhLabel(n){ return `Φ${n.phi} / ${n.length}m`; }
 
 function buildInitialSimple(){
@@ -241,7 +241,7 @@ function render(){
       const myTees = Object.entries(s.tees)
         .filter(([,t])=>t.main===phi&&(s.matTab==='z'?t.mat==='z':t.mat==='ss'||t.mat==='g'))
         .sort(function(a,b){ return a[1].body-b[1].body||a[1].branch-b[1].branch; });
-      const myReds = Object.entries(s.reducers).filter(([,r])=>r.from===phi&&(s.matTab==='z'?r.mat==='z':r.mat==='ss'||r.mat==='g'));
+      const myReds = Object.entries(s.reducers).filter(([,r])=>r.from===phi&&(s.matTab==='z'?r.mat==='z':r.mat==='ss'||r.mat==='g')).sort(function(a,b){ return a[1].to-b[1].to; });
       const myNh   = Object.entries(s.newhope).filter(([,n])=>n.phi===phi);
       if(s.showZero){
         const hasZero = [...simRows,...myTees.map(([,t])=>t),...myReds.map(([,r])=>r),...myNh.map(([,n])=>n)].some(i=>i.quantity===0);
@@ -613,9 +613,11 @@ function saveTee(){
 }
 function saveReducer(){
   const today=new Date().toISOString().slice(0,10);
+  const a=Number(document.getElementById('r-from').value);
+  const b=Number(document.getElementById('r-to').value);
   dbPush('reducers',{
-    from:Number(document.getElementById('r-from').value),
-    to:Number(document.getElementById('r-to').value),
+    from:Math.min(a,b),
+    to:Math.max(a,b),
     mat:document.getElementById('r-mat').value,
     quantity:Number(document.getElementById('r-qty').value),
     updatedAt:today
@@ -664,7 +666,23 @@ db.ref('tees').on('value',snap=>{
     render();
   }
 });
-db.ref('reducers').on('value',snap=>{ state.reducers=snap.val()||{}; render(); });
+db.ref('reducers').on('value',snap=>{
+  const val=snap.val()||{};
+  var fixes={};
+  Object.entries(val).forEach(function(e){
+    var id=e[0], r=e[1];
+    if(Number(r.from) > Number(r.to)){
+      fixes['reducers/'+id+'/from']=Number(r.to);
+      fixes['reducers/'+id+'/to']=Number(r.from);
+    }
+  });
+  if(Object.keys(fixes).length>0){
+    db.ref().update(fixes);
+  } else {
+    state.reducers=val;
+    render();
+  }
+});
 db.ref('newhope').on('value',snap=>{ state.newhope=snap.val()||{}; render(); });
 </script>
 </body>
