@@ -418,8 +418,8 @@ function render(){
       html += `<div class="modal-bg" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">
         <h2>レジューサーを追加</h2>
         <div class="grid2">
-          <div><label>大口径（元）Φ</label><select id="r-from">${PHI.map(p=>`<option value="${p}"${p===200?' selected':''}>`+'Φ'+p+'</option>').join('')}</select></div>
-          <div><label>小口径（先）Φ</label><select id="r-to">${PHI.map(p=>`<option value="${p}"${p===150?' selected':''}>`+'Φ'+p+'</option>').join('')}</select></div>
+          <div><label>Φ</label><select id="r-from">${PHI.map(p=>`<option value="${p}"${p===200?' selected':''}>`+'Φ'+p+'</option>').join('')}</select></div>
+          <div><label>Φ</label><select id="r-to">${PHI.map(p=>`<option value="${p}"${p===150?' selected':''}>`+'Φ'+p+'</option>').join('')}</select></div>
           <div><label>材質</label><select id="r-mat">${MATS.map(m=>`<option value="${m.k}">${m.l}</option>`).join('')}</select></div>
           <div><label>在庫数</label><input type="number" id="r-qty" value="0" min="0"></div>
         </div>
@@ -501,8 +501,8 @@ function renderSearch(){
     }
     if(sc.cat==='reducer'){
       h+='<div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-      h+='<div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">大口径Φ（元）</label>'+sel(sc.phi1,"setSearchPhi1(this.value)")+'</div>';
-      h+='<div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">小口径Φ（先）</label>'+sel(sc.phi2,"setSearchPhi2(this.value)")+'</div>';
+      h+='<div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">Φ</label>'+sel(sc.phi1,"setSearchPhi1(this.value)")+'</div>';
+      h+='<div><label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">Φ</label>'+sel(sc.phi2,"setSearchPhi2(this.value)")+'</div>';
       h+='</div>';
     }
     if(sc.cat){
