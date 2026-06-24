@@ -639,7 +639,19 @@ db.ref('simple').on('value',snap=>{
   else { const init=buildInitialSimple(); db.ref('simple').set(init); state.simple=init; }
   render();
 });
-db.ref('tees').on('value',snap=>{ state.tees=snap.val()||{}; render(); });
+db.ref('tees').on('value',snap=>{
+  const val=snap.val()||{};
+  // main > body の場合は自動で入れ替え
+  Object.entries(val).forEach(function(entry){
+    var id=entry[0], t=entry[1];
+    if(t.main > t.body){
+      db.ref('tees/'+id+'/main').set(t.body);
+      db.ref('tees/'+id+'/body').set(t.main);
+    }
+  });
+  state.tees=val;
+  render();
+});
 db.ref('reducers').on('value',snap=>{ state.reducers=snap.val()||{}; render(); });
 db.ref('newhope').on('value',snap=>{ state.newhope=snap.val()||{}; render(); });
 </script>
