@@ -387,8 +387,6 @@ function render(){
     html += '<div class="modal-bg" onclick="closeSummaryModal()">';
     html += '<div class="modal" style="max-height:none;border-radius:14px;margin:16px;width:calc(100% - 32px)" onclick="event.stopPropagation()">';
     if(s.summaryModal===1){
-      html += '<h2>在庫なし一覧 <span style="font-size:14px;color:#94a3b8;font-weight:600">'+zeroItems.length+'件</span></h2>';
-      // simple
       var zeroItems=[];
       Object.entries(s.simple).forEach(function(e){
         var v=e[1], def=getItemDef(v.itemKey);
@@ -397,6 +395,7 @@ function render(){
       Object.entries(s.tees).forEach(function(e){ var t=e[1]; if(t.quantity===0) zeroItems.push(teeLabel(t)); });
       Object.entries(s.reducers).forEach(function(e){ var r=e[1]; if(r.quantity===0) zeroItems.push(redLabel(r)); });
       Object.entries(s.newhope).forEach(function(e){ var n=e[1]; if(n.quantity===0) zeroItems.push(nhLabel(n)); });
+      html += '<h2>在庫なし一覧 <span style="font-size:14px;color:#94a3b8;font-weight:600">'+zeroItems.length+'件</span></h2>';
       if(!zeroItems.length){
         html += '<p style="color:#94a3b8;text-align:center;padding:20px">在庫なしの品目はありません</p>';
       } else {
