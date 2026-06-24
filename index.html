@@ -2,68 +2,76 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="ダクト在庫"/>
+<meta name="theme-color" content="#1e293b"/>
 <title>ダクト在庫管理</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Hiragino Sans',sans-serif;background:#f1f5f9;min-height:100vh}
-#header{background:#1e293b;color:#fff;padding:0 16px;height:54px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Hiragino Sans',sans-serif;background:#f1f5f9;min-height:100vh;padding-bottom:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px))}
+#header{background:#1e293b;color:#fff;padding:0 16px;padding-top:env(safe-area-inset-top, 0px);height:calc(54px + env(safe-area-inset-top, 0px));display:flex;align-items:flex-end;padding-bottom:10px;gap:10px;position:sticky;top:0;z-index:100}
 #header span.title{font-weight:800;font-size:16px}
-#main{max-width:900px;margin:0 auto;padding:16px}
-.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);border:2px solid #e2e8f0;margin-bottom:14px}
+#main{max-width:900px;margin:0 auto;padding:12px}
+.card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08);border:2px solid #e2e8f0;margin-bottom:12px}
 .card.alert{border-color:#fca5a5}
 .card-head{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border-bottom:1px solid #e2e8f0}
 .card-head.alert{background:#fef2f2}
 .card-head .phi{font-weight:800;font-size:16px;color:#1e293b}
 .card-head .warn{font-size:12px;color:#dc2626;font-weight:700}
 .sec-head{padding:6px 14px;font-weight:800;font-size:12px;letter-spacing:.04em}
-.row{padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
+.row{padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
 .row.zero{background:#fff8f8}
 .row .name{flex:1 1 140px;font-size:13px;color:#374151;min-width:0}
-.row .qty{font-weight:800;font-size:15px;white-space:nowrap}
+.row .qty{font-weight:800;font-size:16px;white-space:nowrap}
 .row .qty.zero{color:#dc2626}
-.badge{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;white-space:nowrap}
-.btn{padding:3px 10px;border:1.5px solid #e2e8f0;border-radius:5px;background:#fff;font-size:11px;cursor:pointer;font-weight:700;color:#475569;margin-left:auto}
+.badge{padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;white-space:nowrap}
+.btn{padding:7px 14px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;font-size:13px;cursor:pointer;font-weight:700;color:#475569;margin-left:auto;min-height:36px}
 .btn.del{border-color:#fecaca;background:#fef2f2;color:#dc2626;margin-left:4px}
-.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
-.sum-card{background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.07);display:flex;align-items:center;gap:10px}
+.summary{display:flex;gap:10px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.summary::-webkit-scrollbar{display:none}
+.sum-card{background:#fff;border-radius:10px;padding:12px 16px;box-shadow:0 1px 3px rgba(0,0,0,.07);display:flex;align-items:center;gap:10px;flex-shrink:0;min-width:130px}
+.sum-card.wide{min-width:200px;flex:1}
 .sum-card .icon{font-size:22px}
 .sum-card .label{font-size:10px;color:#94a3b8;font-weight:600}
 .sum-card .val{font-size:18px;font-weight:800;color:#1e293b}
 .sum-card .val.warn{color:#dc2626}
-.tabs{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap}
-.tab{padding:7px 14px;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;background:#334155;color:#94a3b8}
+.tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:9px 18px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;background:#334155;color:#94a3b8;white-space:nowrap;flex-shrink:0;min-height:40px}
 .tab.active{background:#3b82f6;color:#fff}
-.filters{background:#fff;border-radius:10px;padding:12px 16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.07);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.filters{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .filters label{font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px}
-.filters select,.filters input[type=checkbox]{border:1.5px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:13px;color:#1e293b;background:#f8fafc}
+.filters select{border:1.5px solid #e2e8f0;border-radius:7px;padding:8px 10px;font-size:14px;color:#1e293b;background:#f8fafc;min-height:38px}
+.zero-btn{padding:8px 16px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;color:#64748b;min-height:38px;white-space:nowrap}
+.zero-btn.active{background:#fee2e2;border-color:#fca5a5;color:#dc2626}
 .add-btns{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
-.add-btn{padding:7px 14px;border:none;border-radius:7px;color:#fff;font-weight:700;font-size:12px;cursor:pointer}
-.phi-chips{display:flex;flex-wrap:wrap;gap:4px;width:100%;margin-top:4px}
-.chip{padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #e2e8f0;background:#f1f5f9;color:#94a3b8}
+.add-btn{padding:9px 16px;border:none;border-radius:8px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;min-height:40px}
+.phi-chips{display:flex;flex-wrap:nowrap;gap:6px;width:100%;margin-top:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+.phi-chips::-webkit-scrollbar{display:none}
+.chip{padding:6px 12px;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #e2e8f0;background:#f1f5f9;color:#94a3b8;white-space:nowrap;flex-shrink:0;min-height:32px}
 .chip.warn{background:#fee2e2;color:#dc2626;border-color:#fca5a5}
 .chip.active{background:#1e293b;color:#fff;border-color:#1e293b}
 table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07)}
 th{padding:11px 12px;text-align:left;font-size:11px;font-weight:700;white-space:nowrap}
 td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f1f5f9}
 tr:last-child td{border-bottom:none}
-.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;z-index:200}
-.modal{background:#fff;border-radius:14px;padding:24px;width:min(92vw,420px);box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
-.modal h2{font-size:16px;font-weight:800;color:#1e293b;margin-bottom:18px}
-.modal label{display:block;font-size:11px;font-weight:700;color:#64748b;margin-bottom:5px;margin-top:12px}
-.modal input,.modal select{width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:13px;color:#1e293b;background:#f8fafc}
-.modal .preview{font-size:12px;color:#64748b;margin-top:8px}
-.modal .preview strong{color:#1e293b}
-.modal .row-btn{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
-.modal .cancel{padding:8px 18px;border:1.5px solid #e2e8f0;border-radius:7px;background:#fff;color:#64748b;font-weight:600;cursor:pointer;font-size:13px}
-.modal .save{padding:8px 22px;border:none;border-radius:7px;background:#3b82f6;color:#fff;font-weight:700;cursor:pointer;font-size:13px}
-.adj-row{display:flex;gap:10px;margin-top:12px}
-.adj-in{padding:12px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:20px;font-weight:700;text-align:center;width:100%;background:#f8fafc}
-.btn-in{flex:1;padding:13px;border:none;border-radius:8px;color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:flex-end;justify-content:center;z-index:200;padding-bottom:env(safe-area-inset-bottom,0px)}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:520px;box-shadow:0 -4px 30px rgba(0,0,0,.15);max-height:85vh;overflow-y:auto}
+.modal h2{font-size:17px;font-weight:800;color:#1e293b;margin-bottom:18px}
+.modal label{display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;margin-top:14px}
+.modal input,.modal select{width:100%;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:16px;color:#1e293b;background:#f8fafc}
+.modal .row-btn{display:flex;gap:10px;margin-top:20px}
+.modal .cancel{flex:1;padding:14px;border:1.5px solid #e2e8f0;border-radius:10px;background:#fff;color:#64748b;font-weight:700;cursor:pointer;font-size:15px}
+.modal .save{flex:2;padding:14px;border:none;border-radius:10px;background:#3b82f6;color:#fff;font-weight:700;cursor:pointer;font-size:15px}
+.adj-in{padding:16px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:28px;font-weight:700;text-align:center;width:100%;background:#f8fafc;margin-top:14px}
+.adj-row{display:flex;gap:10px;margin-top:14px}
+.btn-in{flex:1;padding:16px;border:none;border-radius:12px;color:#fff;font-weight:800;font-size:17px;cursor:pointer}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 </style>
 </head>
 <body>
@@ -187,7 +195,7 @@ function render(){
   html += '<div class="sum-card"><span class="icon">🟢</span><div><div class="label">T管</div><div class="val">'+Object.keys(s.tees).length+' 種</div></div></div>';
   html += '<div class="sum-card"><span class="icon">🔻</span><div><div class="label">レジューサー</div><div class="val">'+Object.keys(s.reducers).length+' 種</div></div></div>';
   html += '<div class="sum-card"><span class="icon">💧</span><div><div class="label">ニューホープ</div><div class="val">'+Object.keys(s.newhope).length+' 種</div></div></div>';
-  html += '<div class="sum-card" style="grid-column:1/-1"><span class="icon">🕐</span><div><div class="label">最終更新</div>';
+  html += '<div class="sum-card wide"><span class="icon">🕐</span><div><div class="label">最終更新</div>';
   html += '<div style="font-size:13px;font-weight:700;color:#1e293b;margin-top:2px">'+(s.lastUpdate?s.lastUpdate.content:'まだ更新なし')+'</div>';
   if(s.lastUpdate) html += '<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+s.lastUpdate.time+'</div>';
   html += '</div></div>';
@@ -218,7 +226,7 @@ function render(){
   html += '<option value="all"'+(s.filterPhi==='all'?' selected':'')+'>すべて</option>';
   PHI.forEach(p=>{ html += '<option value="'+p+'"'+(s.filterPhi==p?' selected':'')+'>Φ'+p+'</option>'; });
   html += '</select></div>';
-  html += '<label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#374151;padding-bottom:2px"><input type="checkbox" '+(s.showZero?'checked':'')+' onchange="setShowZero(this.checked)" style="width:15px;height:15px;border:none"> 在庫なしのみ</label>';
+  html += '<button class="zero-btn'+(s.showZero?' active':'')+'" onclick="toggleZero()">在庫なしのみ</button>';
   html += '<div class="add-btns">';
   if(s.tab==='phi'||s.tab==='tee')     html += '<button class="add-btn" style="background:#15803d" onclick="openModal(\'tee\')">＋ T管</button>';
   if(s.tab==='phi'||s.tab==='reducer') html += '<button class="add-btn" style="background:#7c3aed" onclick="openModal(\'reducer\')">＋ レジューサー</button>';
@@ -570,7 +578,8 @@ function setSearchFlexi(v){ state.search.flexi=v; render(); }
 function setMatTab(t){ state.matTab=t; render(); }
 function setFilterPhi(v){ state.filterPhi=v; render(); }
 function setFilterMat(v){ state.filterMat=v; render(); }
-function setShowZero(v){ state.showZero=v; render(); }
+function setShowZero(v){ state.showZero=(v==='true'||v===true); render(); }
+function toggleZero(){ state.showZero=!state.showZero; render(); }
 function togglePhi(p){ state.filterPhi=state.filterPhi==p?'all':String(p); render(); }
 function openModal(t){ state.modal={type:t}; render(); }
 function closeModal(){ state.modal=null; render(); }
