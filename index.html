@@ -142,7 +142,7 @@ const ITEM_ORDER = ALL_ITEMS.map(i=>i.k);
 // 状態
 let state = {
   simple:{}, tees:{}, reducers:{}, newhope:{},
-  tab:"phi", filterPhi:"all", filterMat:"all", showZero:false, matTab:"z", lastUpdate:null, search:{open:false,cat:'',mat:'all',phi1:'all',phi2:'all',phi3:'all',flexi:''},
+  tab:"phi", filterPhi:"all", filterMat:"all", showZero:false, matTab:"z", lastUpdate:null, history:[], search:{open:false,cat:'',mat:'all',phi1:'all',phi2:'all',phi3:'all',flexi:''}, summaryModal:null,
   modal:null
 };
 
@@ -188,17 +188,25 @@ function render(){
 
   let html = '';
 
-  // サマリー
-  html += '<div class="summary">';
-  html += '<div class="sum-card"><span class="icon">⚠</span><div><div class="label">在庫なし</div><div class="val'+(zeroCount>0?' warn':'')+'">'+zeroCount+' 件</div></div></div>';
-  html += '<div class="sum-card"><span class="icon">📦</span><div><div class="label">総在庫数</div><div class="val">'+totalQty+' 点</div></div></div>';
-  html += '<div class="sum-card"><span class="icon">🟢</span><div><div class="label">T管</div><div class="val">'+Object.keys(s.tees).length+' 種</div></div></div>';
-  html += '<div class="sum-card"><span class="icon">🔻</span><div><div class="label">レジューサー</div><div class="val">'+Object.keys(s.reducers).length+' 種</div></div></div>';
-  html += '<div class="sum-card"><span class="icon">💧</span><div><div class="label">ニューホープ</div><div class="val">'+Object.keys(s.newhope).length+' 種</div></div></div>';
-  html += '<div class="sum-card wide"><span class="icon">🕐</span><div><div class="label">最終更新</div>';
-  html += '<div style="font-size:13px;font-weight:700;color:#1e293b;margin-top:2px">'+(s.lastUpdate?s.lastUpdate.content:'まだ更新なし')+'</div>';
-  if(s.lastUpdate) html += '<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+s.lastUpdate.time+'</div>';
-  html += '</div></div>';
+  // サマリー（在庫なし＋最終更新の2枚のみ）
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">';
+  // 左：在庫なし → タップで一覧
+  html += '<div id="sum-zero" onclick="openSummaryModal(this.id)" style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.07);cursor:pointer;border:2px solid '+(zeroCount>0?'#fca5a5':'#e2e8f0')+'">';
+  html += '<div style="font-size:11px;color:#94a3b8;font-weight:600;margin-bottom:6px">在庫なし</div>';
+  html += '<div style="font-size:28px;font-weight:800;color:'+(zeroCount>0?'#dc2626':'#1e293b')+'">'+zeroCount+'<span style="font-size:14px;font-weight:600;color:#94a3b8"> 件</span></div>';
+  html += '<div style="font-size:11px;color:#3b82f6;margin-top:6px;font-weight:600">▶ 一覧を見る</div>';
+  html += '</div>';
+  // 右：最終更新 → タップで履歴
+  html += '<div id="sum-history" onclick="openSummaryModal(this.id)" style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.07);cursor:pointer;border:2px solid #e2e8f0">';
+  html += '<div style="font-size:11px;color:#94a3b8;font-weight:600;margin-bottom:6px">最終更新</div>';
+  if(s.lastUpdate){
+    html += '<div style="font-size:12px;font-weight:700;color:#1e293b;line-height:1.4">'+s.lastUpdate.content+'</div>';
+    html += '<div style="font-size:11px;color:#94a3b8;margin-top:4px">'+s.lastUpdate.time+'</div>';
+  } else {
+    html += '<div style="font-size:13px;color:#94a3b8">まだ更新なし</div>';
+  }
+  html += '<div style="font-size:11px;color:#3b82f6;margin-top:6px;font-weight:600">▶ 履歴を見る</div>';
+  html += '</div>';
   html += '</div>';
 
   // 検索パネル
@@ -232,11 +240,7 @@ function render(){
   if(s.tab==='phi'||s.tab==='reducer') html += '<button class="add-btn" style="background:#7c3aed" onclick="openModal(\'reducer\')">＋ レジューサー</button>';
   if(s.tab==='phi'||s.tab==='newhope') html += '<button class="add-btn" style="background:#0891b2" onclick="openModal(\'newhope\')">＋ ニューホープ</button>';
   html += '</div>';
-  html += '<div class="phi-chips">';
-  PHI.forEach(phi=>{
-    html += '<span class="chip'+(phiZero[phi]>0?' warn':'')+(s.filterPhi==phi?' active':'')+'" onclick="togglePhi('+phi+')">Φ'+phi+(phiZero[phi]>0?' ✕'+phiZero[phi]:'')+' </span>';
-  });
-  html += '</div></div>';
+  html += '</div>';
 
   if(s.tab==='phi'){
     const phis = s.filterPhi==='all'?PHI:[Number(s.filterPhi)];
@@ -378,6 +382,48 @@ function render(){
   }
 
   // モーダル
+  // サマリーモーダル（在庫なし一覧 or 更新履歴）
+  if(s.summaryModal){
+    html += '<div class="modal-bg" onclick="closeSummaryModal()" style="align-items:flex-end">';
+    html += '<div class="modal" onclick="event.stopPropagation()">';
+    if(s.summaryModal==='zero'){
+      html += '<h2>在庫なし一覧 <span style="font-size:14px;color:#94a3b8;font-weight:600">'+zeroItems.length+'件</span></h2>';
+      // simple
+      var zeroItems=[];
+      Object.entries(s.simple).forEach(function(e){
+        var v=e[1], def=getItemDef(v.itemKey);
+        if(v.quantity===0 && def) zeroItems.push('Φ'+v.phi+' '+def.n);
+      });
+      Object.entries(s.tees).forEach(function(e){ var t=e[1]; if(t.quantity===0) zeroItems.push(teeLabel(t)); });
+      Object.entries(s.reducers).forEach(function(e){ var r=e[1]; if(r.quantity===0) zeroItems.push(redLabel(r)); });
+      Object.entries(s.newhope).forEach(function(e){ var n=e[1]; if(n.quantity===0) zeroItems.push(nhLabel(n)); });
+      if(!zeroItems.length){
+        html += '<p style="color:#94a3b8;text-align:center;padding:20px">在庫なしの品目はありません</p>';
+      } else {
+        zeroItems.forEach(function(item){
+          html += '<div style="padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:13px;color:#374151;display:flex;align-items:center;gap:8px">';
+          html += '<span style="background:#fee2e2;color:#dc2626;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap">在庫なし</span>'+item;
+          html += '</div>';
+        });
+      }
+    } else if(s.summaryModal==='history'){
+      html += '<h2>更新履歴</h2>';
+      var hist=Array.isArray(s.history)?s.history:Object.values(s.history||{});
+      if(!hist.length){
+        html += '<p style="color:#94a3b8;text-align:center;padding:20px">まだ更新履歴がありません</p>';
+      } else {
+        hist.forEach(function(h,i){
+          html += '<div style="padding:12px 0;border-bottom:1px solid #f1f5f9">';
+          html += '<div style="font-size:13px;font-weight:700;color:#1e293b">'+h.content+'</div>';
+          html += '<div style="font-size:11px;color:#94a3b8;margin-top:3px">'+h.time+'</div>';
+          html += '</div>';
+        });
+      }
+    }
+    html += '<button class="cancel" style="width:100%;margin-top:16px" onclick="closeSummaryModal()">閉じる</button>';
+    html += '</div></div>';
+  }
+
   if(s.modal){
     const m = s.modal;
     if(m.type==='confirmDel'){
@@ -568,6 +614,8 @@ function renderSearch(){
 }
 
 function setTab(t){ state.tab=t; render(); }
+function openSummaryModal(id){ state.summaryModal=id.replace('sum-',''); render(); }
+function closeSummaryModal(){ state.summaryModal=null; render(); }
 function toggleSearch(){ state.search.open=!state.search.open; render(); }
 function setSearchCat(c){ state.search.cat=c; state.search.mat='all'; state.search.phi1='all'; state.search.phi2='all'; state.search.phi3='all'; state.search.flexi=''; render(); }
 function setSearchMat(m){ state.search.mat=m; render(); }
@@ -601,8 +649,19 @@ function applyAdj(sign){
   const base=m.dataType==='simple'?'simple':m.dataType==='tee'?'tees':m.dataType==='reducer'?'reducers':'newhope';
   dbSet(`${base}/${m.id}/quantity`,newQty);
   dbSet(`${base}/${m.id}/updatedAt`,today);
-  const action=sign>0?`＋${d}`:`－${d}`;
-  dbSet('lastUpdate',{content:`${m.label} ${action}${m.unit} → ${newQty}${m.unit}`,time:timeStr});
+  const action=sign>0?'＋'+d:'－'+d;
+  var newEntry={content:m.label+' '+action+m.unit+' → '+newQty+m.unit, time:timeStr};
+  // 履歴リストに追加（最大10件）
+  db.ref('history').once('value', function(snap){
+    var raw=snap.val();
+    var hist=[];
+    if(Array.isArray(raw)) hist=raw;
+    else if(raw && typeof raw==='object') hist=Object.values(raw);
+    hist.unshift(newEntry);
+    if(hist.length>10) hist=hist.slice(0,10);
+    db.ref('history').set(hist);
+    db.ref('lastUpdate').set(newEntry);
+  });
   closeModal();
 }
 
@@ -646,6 +705,7 @@ function saveNewhope(){
 
 // Firebase リスナー
 db.ref('lastUpdate').on('value',snap=>{ state.lastUpdate=snap.val()||null; render(); });
+db.ref('history').on('value',snap=>{ state.history=snap.val()||[]; render(); });
 db.ref('simple').on('value',snap=>{
   const val=snap.val();
   if(val){ state.simple=val; }
