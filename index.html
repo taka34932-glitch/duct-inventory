@@ -141,7 +141,7 @@ let state = {
 function getItemDef(k){ return ALL_ITEMS.find(i=>i.k===k); }
 function getCat(k){ return Object.entries(CATS).find(([,c])=>c.items.find(i=>i.k===k))?.[0]; }
 function matLabel(k){ return MATS.find(m=>m.k===k)?.l||k; }
-function teeLabel(t){ const m=matLabel(t.mat); return `${t.main}T${t.body}の${t.branch}取り出し（${m}）`; }
+function teeLabel(t){ const m=matLabel(t.mat); return t.main+'T'+t.body+'の'+t.branch+'取り出し（'+m+'）'; }
 function redLabel(r){ return `Φ${r.from}→${r.to}（${matLabel(r.mat)}）`; }
 function nhLabel(n){ return `Φ${n.phi} / ${n.length}m`; }
 
@@ -238,7 +238,14 @@ function render(){
         .filter(([,v])=>v.phi===phi)
         .map(([id,v])=>({id,...v,def:getItemDef(v.itemKey),cat:getCat(v.itemKey)}))
         .filter(r=>{ if(!r.def)return false; if(s.matTab==='z') return r.def.k.endsWith('_z')||r.def.k.startsWith('flexi_'); return r.def.k.endsWith('_ss')||r.def.k.endsWith('_g'); }).sort((a,b)=>ITEM_ORDER.indexOf(a.def.k)-ITEM_ORDER.indexOf(b.def.k));
-      const myTees = Object.entries(s.tees).filter(([,t])=>t.main===phi&&(s.matTab==='z'?t.mat==='z':t.mat==='ss'||t.mat==='g'));
+      const myTees = Object.entries(s.tees)
+        .filter(([,t])=>(t.main===phi||t.body===phi)&&(s.matTab==='z'?t.mat==='z':t.mat==='ss'||t.mat==='g'))
+        .map(([id,t])=>{
+          // phi側を常にleftに固定、もう一方をrightに
+          const left=phi, right=(t.main===phi?t.body:t.main);
+          return [id,Object.assign({},t,{left,right})];
+        })
+        .sort((a,b)=>a[1].right-b[1].right||a[1].branch-b[1].branch);
       const myReds = Object.entries(s.reducers).filter(([,r])=>r.from===phi&&(s.matTab==='z'?r.mat==='z':r.mat==='ss'||r.mat==='g'));
       const myNh   = Object.entries(s.newhope).filter(([,n])=>n.phi===phi);
       if(s.showZero){
@@ -269,7 +276,8 @@ function render(){
       html += `<div class="sec-head" style="background:#f0fdf4;color:#15803d;border-bottom:1px solid #bbf7d0">🟢 T管</div>`;
       if(!myTees.length) html += `<div class="row"><span style="font-size:12px;color:#94a3b8">登録なし</span></div>`;
       myTees.forEach(([id,t])=>{ const z=t.quantity===0;
-        html += `<div class="row${z?' zero':''}"><span class="name">${teeLabel(t)}</span><span class="qty${z?' zero':''}">${t.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('tee','${id}',${t.quantity},'${teeLabel(t)}','個')">入出庫</button><button class="btn del" onclick="confirmDelete('tees/'+id, teeLabel(t))">削除</button></div>`;
+        const lbl=t.left+'T'+t.right+'の'+t.branch+'取り出し（'+matLabel(t.mat)+'）';
+        html += `<div class="row${z?' zero':''}"><span class="name">${lbl}</span><span class="qty${z?' zero':''}">${t.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('tee','${id}',${t.quantity},'${lbl}','個')">入出庫</button><button class="btn del" onclick="confirmDelete('tees/'+id, '${lbl}')">削除</button></div>`;
       });
       // レジューサー
       html += `<div class="sec-head" style="background:#f5f3ff;color:#7c3aed;border-bottom:1px solid #ddd6fe">🔻 レジューサー</div>`;
