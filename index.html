@@ -385,7 +385,7 @@ function render(){
   // サマリーモーダル（在庫なし一覧 or 更新履歴）
   if(s.summaryModal){
     html += '<div class="modal-bg" onclick="closeSummaryModal()">';
-    html += '<div class="modal" style="max-height:none;border-radius:14px;margin:16px;width:calc(100% - 32px)" onclick="event.stopPropagation()">';
+    html += '<div class="modal" style="max-height:80vh;border-radius:14px;margin:16px;width:calc(100% - 32px);display:flex;flex-direction:column;overflow:hidden" onclick="event.stopPropagation()">';
     if(s.summaryModal===1){
       var zeroItems=[];
       Object.entries(s.simple).forEach(function(e){
@@ -396,6 +396,7 @@ function render(){
       Object.entries(s.reducers).forEach(function(e){ var r=e[1]; if(r.quantity===0) zeroItems.push(redLabel(r)); });
       Object.entries(s.newhope).forEach(function(e){ var n=e[1]; if(n.quantity===0) zeroItems.push(nhLabel(n)); });
       html += '<h2>在庫なし一覧 <span style="font-size:14px;color:#94a3b8;font-weight:600">'+zeroItems.length+'件</span></h2>';
+      html += '<div style="overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">';
       if(!zeroItems.length){
         html += '<p style="color:#94a3b8;text-align:center;padding:20px">在庫なしの品目はありません</p>';
       } else {
@@ -405,9 +406,11 @@ function render(){
           html += '</div>';
         });
       }
+      html += '</div>';
     } else if(s.summaryModal===2){
       html += '<h2>更新履歴</h2>';
       var hist=Array.isArray(s.history)?s.history:Object.values(s.history||{});
+      html += '<div style="overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch">';
       if(!hist.length){
         html += '<p style="color:#94a3b8;text-align:center;padding:20px">まだ更新履歴がありません</p>';
       } else {
@@ -418,6 +421,7 @@ function render(){
           html += '</div>';
         });
       }
+      html += '</div>';
     }
     html += '<button class="cancel" style="width:100%;margin-top:16px" onclick="closeSummaryModal()">閉じる</button>';
     html += '</div></div>';
