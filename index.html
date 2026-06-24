@@ -272,19 +272,19 @@ function render(){
       if(!myTees.length) html += `<div class="row"><span style="font-size:12px;color:#94a3b8">登録なし</span></div>`;
       myTees.forEach(([id,t])=>{ const z=t.quantity===0;
         const lbl=teeLabel(t);
-        html += `<div class="row${z?' zero':''}"><span class="name">${lbl}</span><span class="qty${z?' zero':''}">${t.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('tee','${id}',${t.quantity},'${lbl}','個')">入出庫</button><button class="btn del" onclick="confirmDelete('tees/'+id, '${lbl}')">削除</button></div>`;
+        html += `<div class="row${z?' zero':''}"><span class="name">${lbl}</span><span class="qty${z?' zero':''}">${t.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('tee','${id}',${t.quantity},'${lbl}','個')">入出庫</button><button class="btn del" onclick="confirmDelete('tees/${id}', '${lbl}')">削除</button></div>`;
       });
       // レジューサー
       html += `<div class="sec-head" style="background:#f5f3ff;color:#7c3aed;border-bottom:1px solid #ddd6fe">🔻 レジューサー</div>`;
       if(!myReds.length) html += `<div class="row"><span style="font-size:12px;color:#94a3b8">登録なし</span></div>`;
       myReds.forEach(([id,r])=>{ const z=r.quantity===0;
-        html += `<div class="row${z?' zero':''}"><span class="name">${redLabel(r)}</span><span class="qty${z?' zero':''}">${r.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('reducer','${id}',${r.quantity},'${redLabel(r)}','個')">入出庫</button><button class="btn del" onclick="confirmDelete('reducers/'+id, redLabel(r))">削除</button></div>`;
+        html += `<div class="row${z?' zero':''}"><span class="name">${redLabel(r)}</span><span class="qty${z?' zero':''}">${r.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('reducer','${id}',${r.quantity},'${redLabel(r)}','個')">入出庫</button><button class="btn del" onclick="confirmDelete('reducers/${id}', '${redLabel(r)}')">削除</button></div>`;
       });
       // ニューホープ
       html += `<div class="sec-head" style="background:#ecfeff;color:#0891b2;border-bottom:1px solid #a5f3fc">💧 ニューホープ</div>`;
       if(!myNh.length) html += `<div class="row"><span style="font-size:12px;color:#94a3b8">登録なし</span></div>`;
       myNh.forEach(([id,n])=>{ const z=n.quantity===0;
-        html += `<div class="row${z?' zero':''}"><span class="name">${n.length}m</span><span class="qty${z?' zero':''}">${n.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">本</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('newhope','${id}',${n.quantity},'${nhLabel(n)}','本')">入出庫</button><button class="btn del" onclick="confirmDelete('newhope/'+id, nhLabel(n))">削除</button></div>`;
+        html += `<div class="row${z?' zero':''}"><span class="name">${n.length}m</span><span class="qty${z?' zero':''}">${n.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">本</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('newhope','${id}',${n.quantity},'${nhLabel(n)}','本')">入出庫</button><button class="btn del" onclick="confirmDelete('newhope/${id}', '${nhLabel(n)}')">削除</button></div>`;
       });
       html += `</div>`;
     });
@@ -312,7 +312,7 @@ function render(){
             <span style="font-size:20px;font-weight:800;color:${z?'#dc2626':'#1e293b'}">${t.quantity} <span style="font-size:12px;color:#94a3b8;font-weight:400">個</span></span>
             ${z?'<span class="badge">在庫なし</span>':''}
             <button class="btn" onclick="openAdj('tee','${id}',${t.quantity},'${teeLabel(t)}','個')">入出庫</button>
-            <button class="btn del" onclick="confirmDelete('tees/'+id, teeLabel(t))">削除</button>
+            <button class="btn del" onclick="confirmDelete('tees/${id}', '${teeLabel(t)}')">削除</button>
           </div>
         </div>
       </div>`;
@@ -338,7 +338,7 @@ function render(){
             <span style="font-size:20px;font-weight:800;color:${z?'#dc2626':'#1e293b'}">${r.quantity} <span style="font-size:12px;color:#94a3b8;font-weight:400">個</span></span>
             ${z?'<span class="badge">在庫なし</span>':''}
             <button class="btn" onclick="openAdj('reducer','${id}',${r.quantity},'${redLabel(r)}','個')">入出庫</button>
-            <button class="btn del" onclick="confirmDelete('reducers/'+id, redLabel(r))">削除</button>
+            <button class="btn del" onclick="confirmDelete('reducers/${id}', '${redLabel(r)}')">削除</button>
           </div>
         </div>
       </div>`;
@@ -362,7 +362,7 @@ function render(){
             <span style="font-size:20px;font-weight:800;color:${z?'#dc2626':'#1e293b'}">${n.quantity} <span style="font-size:12px;color:#94a3b8;font-weight:400">本</span></span>
             ${z?'<span class="badge">在庫なし</span>':''}
             <button class="btn" onclick="openAdj('newhope','${id}',${n.quantity},'${nhLabel(n)}','本')">入出庫</button>
-            <button class="btn del" onclick="confirmDelete('newhope/'+id, nhLabel(n))">削除</button>
+            <button class="btn del" onclick="confirmDelete('newhope/${id}', '${nhLabel(n)}')">削除</button>
           </div>
         </div>
       </div>`;
