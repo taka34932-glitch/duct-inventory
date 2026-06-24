@@ -240,12 +240,7 @@ function render(){
         .filter(r=>{ if(!r.def)return false; if(s.matTab==='z') return r.def.k.endsWith('_z')||r.def.k.startsWith('flexi_'); return r.def.k.endsWith('_ss')||r.def.k.endsWith('_g'); }).sort((a,b)=>ITEM_ORDER.indexOf(a.def.k)-ITEM_ORDER.indexOf(b.def.k));
       const myTees = Object.entries(s.tees)
         .filter(([,t])=>(t.main===phi||t.body===phi)&&(s.matTab==='z'?t.mat==='z':t.mat==='ss'||t.mat==='g'))
-        .map(([id,t])=>{
-          // phi側を常にleftに固定、もう一方をrightに
-          const left=phi, right=(t.main===phi?t.body:t.main);
-          return [id,Object.assign({},t,{left,right})];
-        })
-        .sort((a,b)=>a[1].right-b[1].right||a[1].branch-b[1].branch);
+        .sort(function(a,b){ return a[1].body-b[1].body||a[1].branch-b[1].branch; });
       const myReds = Object.entries(s.reducers).filter(([,r])=>r.from===phi&&(s.matTab==='z'?r.mat==='z':r.mat==='ss'||r.mat==='g'));
       const myNh   = Object.entries(s.newhope).filter(([,n])=>n.phi===phi);
       if(s.showZero){
@@ -276,7 +271,7 @@ function render(){
       html += `<div class="sec-head" style="background:#f0fdf4;color:#15803d;border-bottom:1px solid #bbf7d0">🟢 T管</div>`;
       if(!myTees.length) html += `<div class="row"><span style="font-size:12px;color:#94a3b8">登録なし</span></div>`;
       myTees.forEach(([id,t])=>{ const z=t.quantity===0;
-        const lbl=t.left+'T'+t.right+'の'+t.branch+'取り出し（'+matLabel(t.mat)+'）';
+        const lbl=teeLabel(t);
         html += `<div class="row${z?' zero':''}"><span class="name">${lbl}</span><span class="qty${z?' zero':''}">${t.quantity} <span style="font-size:11px;color:#94a3b8;font-weight:400">個</span></span>${z?'<span class="badge">在庫なし</span>':''}<button class="btn" onclick="openAdj('tee','${id}',${t.quantity},'${lbl}','個')">入出庫</button><button class="btn del" onclick="confirmDelete('tees/'+id, '${lbl}')">削除</button></div>`;
       });
       // レジューサー
@@ -649,17 +644,23 @@ db.ref('simple').on('value',snap=>{
 });
 db.ref('tees').on('value',snap=>{
   const val=snap.val()||{};
-  // main > body の場合は自動で入れ替え（小さい方をmainに統一）
-  var needsFix = false;
+  var fixes=[];
   Object.entries(val).forEach(function(entry){
     var id=entry[0], t=entry[1];
-    if(t.main > t.body){
-      needsFix = true;
-      db.ref('tees/'+id).update({main:t.body, body:t.main});
+    if(Number(t.main) > Number(t.body)){
+      fixes.push({id:id, main:Number(t.body), body:Number(t.main)});
     }
   });
-  state.tees=val;
-  if(!needsFix) render();
+  if(fixes.length>0){
+    fixes.forEach(function(f){
+      db.ref('tees/'+f.id+'/main').set(f.main);
+      db.ref('tees/'+f.id+'/body').set(f.body);
+    });
+    // リスナーが再発火するので render はしない
+  } else {
+    state.tees=val;
+    render();
+  }
 });
 db.ref('reducers').on('value',snap=>{ state.reducers=snap.val()||{}; render(); });
 db.ref('newhope').on('value',snap=>{ state.newhope=snap.val()||{}; render(); });
